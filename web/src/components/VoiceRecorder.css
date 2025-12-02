@@ -1,0 +1,159 @@
+.voice-recorder {
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+}
+
+.voice-recorder-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+.voice-record-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: #d32f2f;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
+}
+
+.voice-record-btn:hover {
+  background: #b71c1c;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4);
+}
+
+.voice-record-hint {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.voice-recording {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.voice-recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.pulse-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d32f2f;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.recording-text {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.recording-time {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-family: monospace;
+  min-width: 40px;
+}
+
+.voice-stop-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #d32f2f;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.voice-stop-btn:hover {
+  background: #b71c1c;
+  transform: scale(1.1);
+}
+
+.voice-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voice-audio-preview {
+  width: 100%;
+  height: 40px;
+  outline: none;
+}
+
+.voice-audio-preview::-webkit-media-controls-panel {
+  background-color: var(--bg-tertiary);
+}
+
+.voice-preview-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.voice-send-btn,
+.voice-cancel-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.voice-send-btn {
+  background: var(--accent);
+  color: white;
+}
+
+.voice-send-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.voice-cancel-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.voice-cancel-btn:hover {
+  background: var(--border);
+}
+

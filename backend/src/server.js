@@ -6,7 +6,9 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chats');
+const messageRoutes = require('./routes/messages');
 const { MessageStorage, ChatStorage, UserStorage, ensureDataDir } = require('./storage/fileStorage');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,6 +24,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Статические файлы для загрузок
+app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
@@ -29,6 +34,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -74,9 +80,16 @@ io.on('connection', (socket) => {
       console.log('Received send-message:', data);
       const { chatId, senderId, text } = data;
 
-      if (!chatId || !senderId || !text) {
-        console.error('Missing required fields:', { chatId, senderId, text });
+      if (!chatId || !senderId) {
+        console.error('Missing required fields:', { chatId, senderId });
         if (callback) callback({ error: 'Отсутствуют обязательные поля' });
+        return;
+      }
+
+      // Для текстовых сообщений text обязателен, для голосовых - нет
+      if (!text && !data.audioUrl) {
+        console.error('Missing text or audioUrl');
+        if (callback) callback({ error: 'Отсутствует текст или аудио' });
         return;
       }
 
@@ -84,7 +97,9 @@ io.on('connection', (socket) => {
       const message = await MessageStorage.create({
         chat: chatId,
         sender: senderId,
-        text: text
+        text: text || '',
+        audioUrl: data.audioUrl || null,
+        type: data.audioUrl ? 'voice' : 'text'
       });
 
       console.log('Message saved:', message._id);
@@ -107,7 +122,9 @@ io.on('connection', (socket) => {
         _id: message._id,
         chat: chatId,
         sender: senderData,
-        text: message.text,
+        text: message.text || '',
+        audioUrl: message.audioUrl || null,
+        type: message.type || 'text',
         status: message.status || 'sent',
         createdAt: message.createdAt
       };
@@ -148,6 +165,128 @@ io.on('connection', (socket) => {
       console.error('Error sending message:', error);
       if (callback) callback({ error: error.message || 'Ошибка отправки сообщения' });
       socket.emit('error', { message: 'Ошибка отправки сообщения' });
+    }
+  });
+
+  // Send file message (через socket после загрузки файла)
+  socket.on('send-file-message', async (data, callback) => {
+    try {
+      console.log('Received send-file-message:', data);
+      const { chatId, messageId } = data;
+
+      if (!chatId || !messageId) {
+        console.error('Missing required fields:', { chatId, messageId });
+        if (callback) callback({ error: 'Отсутствуют обязательные поля' });
+        return;
+      }
+
+      // Получаем сообщение
+      const message = await MessageStorage.findById(messageId);
+      if (!message) {
+        if (callback) callback({ error: 'Сообщение не найдено' });
+        return;
+      }
+
+      // Получаем данные отправителя
+      const sender = await UserStorage.findById(message.sender);
+      const senderData = sender ? {
+        _id: sender._id,
+        username: sender.username,
+        avatar: sender.avatar
+      } : null;
+
+      const messageData = {
+        _id: message._id,
+        chat: chatId,
+        sender: senderData,
+        text: message.text || '',
+        fileUrl: message.fileUrl,
+        fileName: message.fileName,
+        fileSize: message.fileSize,
+        fileType: message.fileType,
+        mimeType: message.mimeType,
+        type: message.type || 'file',
+        status: message.status || 'sent',
+        createdAt: message.createdAt
+      };
+
+      // Отправляем сообщение всем в комнате
+      io.to(chatId).emit('receive-message', messageData);
+      
+      // Обновляем статус на "delivered"
+      setTimeout(async () => {
+        await MessageStorage.update(message._id, { status: 'delivered' });
+        io.to(chatId).emit('message-status-updated', {
+          messageId: message._id,
+          status: 'delivered'
+        });
+      }, 200);
+      
+      console.log(`File message sent to room ${chatId}`);
+
+      if (callback) callback({ success: true });
+    } catch (error) {
+      console.error('Error sending file message:', error);
+      if (callback) callback({ error: error.message || 'Ошибка отправки файла' });
+    }
+  });
+
+  // Send voice message (через socket после загрузки файла)
+  socket.on('send-voice-message', async (data, callback) => {
+    try {
+      console.log('Received send-voice-message:', data);
+      const { chatId, messageId } = data;
+
+      if (!chatId || !messageId) {
+        console.error('Missing required fields:', { chatId, messageId });
+        if (callback) callback({ error: 'Отсутствуют обязательные поля' });
+        return;
+      }
+
+      // Получаем сообщение
+      const message = await MessageStorage.findById(messageId);
+      if (!message) {
+        if (callback) callback({ error: 'Сообщение не найдено' });
+        return;
+      }
+
+      // Получаем данные отправителя
+      const sender = await UserStorage.findById(message.sender);
+      const senderData = sender ? {
+        _id: sender._id,
+        username: sender.username,
+        avatar: sender.avatar
+      } : null;
+
+      const messageData = {
+        _id: message._id,
+        chat: chatId,
+        sender: senderData,
+        text: message.text || '',
+        audioUrl: message.audioUrl,
+        type: message.type || 'voice',
+        status: message.status || 'sent',
+        createdAt: message.createdAt
+      };
+
+      // Отправляем сообщение всем в комнате
+      io.to(chatId).emit('receive-message', messageData);
+      
+      // Обновляем статус на "delivered"
+      setTimeout(async () => {
+        await MessageStorage.update(message._id, { status: 'delivered' });
+        io.to(chatId).emit('message-status-updated', {
+          messageId: message._id,
+          status: 'delivered'
+        });
+      }, 200);
+      
+      console.log(`Voice message sent to room ${chatId}`);
+
+      if (callback) callback({ success: true });
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      if (callback) callback({ error: error.message || 'Ошибка отправки голосового сообщения' });
     }
   });
 

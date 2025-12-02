@@ -470,6 +470,39 @@ function App() {
     });
   };
 
+  const handleSendVoiceMessage = (message) => {
+    if (!socket || !socket.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    if (!selectedChat || !message || !user) {
+      console.error('Missing chat, message, or user');
+      return;
+    }
+
+    const chatId = selectedChat._id;
+    
+    // Добавляем сообщение локально
+    setMessages(prev => ({
+      ...prev,
+      [chatId]: [...(prev[chatId] || []), message]
+    }));
+
+    // Определяем тип события в зависимости от типа сообщения
+    const eventType = message.type === 'file' ? 'send-file-message' : 'send-voice-message';
+    
+    // Отправляем через socket для уведомления других пользователей
+    socket.emit(eventType, {
+      chatId: chatId,
+      messageId: message._id
+    }, (response) => {
+      if (response && response.error) {
+        console.error(`Error sending ${message.type} message:`, response.error);
+      }
+    });
+  };
+
   // Обработчики меню
   const handleProfile = () => {
     setShowMenu(false);
@@ -540,6 +573,7 @@ function App() {
             messages={messages[selectedChat._id] || []}
             currentUser={user}
             onSendMessage={handleSendMessage}
+            onSendVoiceMessage={handleSendVoiceMessage}
           />
         ) : (
           <div className="welcome-screen">

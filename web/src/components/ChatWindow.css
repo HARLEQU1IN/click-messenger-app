@@ -64,6 +64,8 @@
   padding: 10px 15px;
   border-radius: 18px;
   word-wrap: break-word;
+  display: flex;
+  flex-direction: column;
 }
 
 .message.own .message-content {
@@ -92,6 +94,84 @@
 .message-text {
   margin-bottom: 4px;
   line-height: 1.4;
+}
+
+.message-file {
+  margin: 4px 0;
+}
+
+.message-media {
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.message-image {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
+}
+
+.message-video {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  display: block;
+}
+
+.message-document {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  max-width: 300px;
+}
+
+.message.own .message-document {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.document-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.document-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.document-name {
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+  word-break: break-all;
+  unicode-bidi: embed;
+}
+
+.document-size {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.document-download {
+  font-size: 20px;
+  text-decoration: none;
+  color: currentColor;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.document-download:hover {
+  opacity: 1;
 }
 
 .message-footer {
@@ -177,6 +257,41 @@
   border-top: 1px solid var(--border);
   gap: 10px;
   box-shadow: 0 -2px 8px var(--shadow);
+  align-items: center;
+  position: relative;
+}
+
+.input-buttons-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.attachment-button,
+.voice-button {
+  background: var(--bg-tertiary);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.attachment-button:hover,
+.voice-button:hover {
+  background: var(--border);
+  transform: scale(1.05);
+}
+
+.message-audio {
+  margin: 8px 0;
 }
 
 .message-input {

@@ -1,0 +1,162 @@
+.voice-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 18px;
+  position: relative;
+  min-width: 220px;
+  max-width: 320px;
+  overflow: visible;
+  margin: 4px 0;
+  height: 40px;
+}
+
+.voice-message.own {
+  background: var(--message-own);
+  color: white;
+}
+
+.voice-message.other {
+  background: var(--message-other);
+  color: var(--text-primary);
+}
+
+.voice-play-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: currentColor;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.voice-play-button svg {
+  width: 10px;
+  height: 10px;
+}
+
+.voice-message.own .voice-play-button {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.voice-message.other .voice-play-button {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.voice-play-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.voice-message.other .voice-play-button:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.voice-play-button.playing {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.voice-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.voice-waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 24px;
+  width: 100%;
+  padding: 0;
+}
+
+.waveform-bar {
+  flex: 1;
+  min-width: 1.5px;
+  max-width: 2px;
+  background: currentColor;
+  opacity: 0.35;
+  border-radius: 1px;
+  transition: opacity 0.15s ease;
+  align-self: center;
+}
+
+.waveform-bar.active {
+  opacity: 0.85;
+}
+
+.voice-message.own .waveform-bar {
+  background: white;
+}
+
+.voice-message.other .waveform-bar {
+  background: var(--text-primary);
+}
+
+.voice-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.voice-duration {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-size {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+.voice-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.5);
+  transition: width 0.1s linear;
+  border-radius: 0 0 18px 18px;
+}
+
+.voice-message.own .voice-progress {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.voice-message.other .voice-progress {
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+/* Анимация для воспроизведения */
+.voice-play-button.playing svg {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+
