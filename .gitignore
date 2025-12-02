@@ -49,3 +49,6 @@ coverage/
 # Data files (optional - можно раскомментировать, если не хотите коммитить данные)
 # backend/data/
 
+# GitHub Actions
+.github/workflows/*.log
+
