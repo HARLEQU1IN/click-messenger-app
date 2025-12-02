@@ -88,7 +88,7 @@ function App() {
         if (existingIndex >= 0) {
           // Заменяем временное сообщение на реальное
           const newMessages = [...chatMessages];
-          newMessages[existingIndex] = message;
+          newMessages[existingIndex] = { ...message, status: message.status || 'sent' };
           return {
             ...prev,
             [chatId]: newMessages.filter((m, index, arr) => {
@@ -101,9 +101,20 @@ function App() {
         // Добавляем новое сообщение
         return {
           ...prev,
-          [chatId]: [...chatMessages, message]
+          [chatId]: [...chatMessages, { ...message, status: message.status || 'sent' }]
         };
       });
+      
+      // Помечаем сообщение как прочитанное, если это не наше сообщение
+      const currentUserId = user?._id || user?.id;
+      if (message.sender?._id !== currentUserId && selectedChat?._id === message.chat && newSocket && newSocket.connected) {
+        setTimeout(() => {
+          newSocket.emit('mark-message-read', {
+            messageId: message._id,
+            chatId: message.chat
+          });
+        }, 1000);
+      }
       
       // Обновляем список чатов
       loadChats();
@@ -115,6 +126,23 @@ function App() {
           messagesEnd.scrollTop = messagesEnd.scrollHeight;
         }
       }, 100);
+    });
+
+    newSocket.on('message-status-updated', (data) => {
+      console.log('Message status updated:', data);
+      setMessages(prev => {
+        if (!data.messageId) return prev;
+        
+        // Обновляем статус во всех чатах, где есть это сообщение
+        const updated = { ...prev };
+        Object.keys(updated).forEach(chatId => {
+          updated[chatId] = updated[chatId].map(m => 
+            m._id === data.messageId ? { ...m, status: data.status } : m
+          );
+        });
+        
+        return updated;
+      });
     });
 
     newSocket.on('error', (error) => {
@@ -266,18 +294,19 @@ function App() {
       socket.emit('join-room', chatId);
     }
     
-    // Добавляем сообщение локально сразу для мгновенного отображения
-    const tempMessage = {
-      _id: `temp-${Date.now()}-${Math.random()}`,
-      chat: chatId,
-      sender: {
-        _id: senderId,
-        username: user.username || 'User',
-        avatar: user.avatar || ''
-      },
-      text: messageText,
-      createdAt: new Date().toISOString()
-    };
+      // Добавляем сообщение локально сразу для мгновенного отображения
+      const tempMessage = {
+        _id: `temp-${Date.now()}-${Math.random()}`,
+        chat: chatId,
+        sender: {
+          _id: senderId,
+          username: user.username || 'User',
+          avatar: user.avatar || ''
+        },
+        text: messageText,
+        status: 'sent',
+        createdAt: new Date().toISOString()
+      };
     
     setMessages(prev => ({
       ...prev,

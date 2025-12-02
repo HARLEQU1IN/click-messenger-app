@@ -95,15 +95,27 @@ io.on('connection', (socket) => {
         chat: chatId,
         sender: senderData,
         text: message.text,
+        status: message.status || 'sent',
         createdAt: message.createdAt
       };
 
       console.log('Emitting to room:', chatId);
       console.log('Message data:', messageData);
-      console.log('Rooms:', Array.from(io.sockets.adapter.rooms.keys()));
 
       // Отправляем сообщение всем в комнате (включая отправителя, если он в комнате)
       io.to(chatId).emit('receive-message', messageData);
+      
+      // Обновляем статус на "delivered" для всех получателей в комнате
+      setTimeout(async () => {
+        const room = io.sockets.adapter.rooms.get(chatId);
+        if (room && room.size > 1) {
+          await MessageStorage.update(message._id, { status: 'delivered' });
+          io.to(chatId).emit('message-status-updated', {
+            messageId: message._id,
+            status: 'delivered'
+          });
+        }
+      }, 100);
       
       console.log(`Message sent to room ${chatId}`);
 
@@ -112,6 +124,38 @@ io.on('connection', (socket) => {
       console.error('Error sending message:', error);
       if (callback) callback({ error: error.message || 'Ошибка отправки сообщения' });
       socket.emit('error', { message: 'Ошибка отправки сообщения' });
+    }
+  });
+
+  // Mark message as read
+  socket.on('mark-message-read', async (data) => {
+    try {
+      const { messageId, chatId } = data;
+      
+      if (!messageId || !chatId) {
+        return;
+      }
+
+      const message = await MessageStorage.findById(messageId);
+      if (!message) {
+        return;
+      }
+
+      // Обновляем статус на "read"
+      await MessageStorage.update(messageId, { 
+        status: 'read',
+        read: true
+      });
+
+      // Отправляем обновление статуса всем в комнате
+      io.to(chatId).emit('message-status-updated', {
+        messageId: messageId,
+        status: 'read'
+      });
+
+      console.log(`Message ${messageId} marked as read`);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
     }
   });
 });

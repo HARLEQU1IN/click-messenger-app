@@ -197,6 +197,7 @@ const MessageStorage = {
     const newMessage = {
       _id: generateId(),
       ...messageData,
+      status: 'sent', // sent, delivered, read
       read: false,
       readBy: [],
       createdAt: new Date().toISOString(),

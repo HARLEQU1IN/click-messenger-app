@@ -38,6 +38,21 @@ function ChatWindow({ chat, messages, currentUser, onSendMessage }) {
     });
   };
 
+  const getMessageStatusIcon = (status, isOwn) => {
+    if (!isOwn) return null;
+    
+    switch (status) {
+      case 'sent':
+        return '✓'; // Одна серая галочка
+      case 'delivered':
+        return '✓✓'; // Две серые галочки
+      case 'read':
+        return '✓✓'; // Две синие галочки
+      default:
+        return '✓';
+    }
+  };
+
   return (
     <div className="chat-window">
       <div className="chat-header">
@@ -72,8 +87,15 @@ function ChatWindow({ chat, messages, currentUser, onSendMessage }) {
                   <div className="message-sender">{sender.username}</div>
                 )}
                     <div className="message-text">{message.text || ''}</div>
-                    <div className="message-time">
-                      {message.createdAt ? formatTime(message.createdAt) : ''}
+                    <div className="message-footer">
+                      <div className="message-time">
+                        {message.createdAt ? formatTime(message.createdAt) : ''}
+                      </div>
+                      {isOwn && (
+                        <div className={`message-status status-${message.status || 'sent'}`}>
+                          {getMessageStatusIcon(message.status || 'sent', isOwn)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

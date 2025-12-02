@@ -181,7 +181,7 @@ router.get('/:chatId/messages', authenticate, async (req, res) => {
     const populatedMessages = await Promise.all(
       messages.map(async (msg) => {
         if (!msg || !msg.sender) {
-          return { ...msg, sender: null };
+          return { ...msg, sender: null, status: msg.status || 'sent' };
         }
         const senderId = msg.sender && typeof msg.sender === 'object'
           ? (msg.sender._id || String(msg.sender))
@@ -189,6 +189,7 @@ router.get('/:chatId/messages', authenticate, async (req, res) => {
         const sender = await UserStorage.findById(senderId);
         return {
           ...msg,
+          status: msg.status || 'sent',
           sender: sender ? {
             _id: sender._id,
             username: sender.username,

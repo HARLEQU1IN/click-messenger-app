@@ -86,10 +86,44 @@
   line-height: 1.4;
 }
 
+.message-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .message-time {
   font-size: 10px;
   opacity: 0.7;
-  text-align: right;
+}
+
+.message-status {
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.message-status.status-sent {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-status.status-delivered {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-status.status-read {
+  color: #4fc3f7;
+  opacity: 1;
+}
+
+.message.other .message-status {
+  display: none;
+}
+
+.message.own .message-content {
+  position: relative;
 }
 
 .message-input-form {
