@@ -24,14 +24,34 @@ function App() {
       axios.get(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-        .then(res => {
-          setUser(res.data);
-          loadChats();
-          loadUsers();
+        .then(async res => {
+          const userData = {
+            ...res.data,
+            _id: res.data._id || res.data.id
+          };
+          setUser(userData);
+          
+          // Загружаем пользователей
+          await loadUsers();
+          
+          // Загружаем чаты и восстанавливаем выбранный чат
+          const loadedChats = await loadChats();
+          
+          // Восстанавливаем выбранный чат из localStorage после загрузки чатов
+          const savedChatId = localStorage.getItem('selectedChatId');
+          if (savedChatId && loadedChats && loadedChats.length > 0) {
+            const savedChat = loadedChats.find(c => c._id === savedChatId);
+            if (savedChat) {
+              setSelectedChat(savedChat);
+              await loadMessages(savedChatId);
+            }
+          }
+          
           connectSocket();
         })
         .catch(() => {
           localStorage.removeItem('token');
+          localStorage.removeItem('selectedChatId');
           setToken(null);
         });
     }
@@ -45,18 +65,26 @@ function App() {
   }, [token]);
 
   const connectSocket = () => {
-    if (socket) {
+    if (socket && socket.connected) {
       socket.close();
     }
     
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
     });
     
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
       console.log('Socket connected:', newSocket.id);
+      // Присоединяемся к комнате выбранного чата, если он есть
+      const currentChatId = selectedChat?._id || localStorage.getItem('selectedChatId');
+      if (currentChatId) {
+        newSocket.emit('join-room', currentChatId);
+      }
     });
 
     newSocket.on('disconnect', () => {
@@ -155,9 +183,23 @@ function App() {
       const res = await axios.get(`${API_URL}/chats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setChats(res.data);
+      const chatsData = res.data || [];
+      setChats(chatsData);
+      
+      // Восстанавливаем выбранный чат после загрузки
+      const savedChatId = localStorage.getItem('selectedChatId');
+      if (savedChatId && chatsData.length > 0) {
+        const savedChat = chatsData.find(c => c._id === savedChatId);
+        if (savedChat) {
+          setSelectedChat(savedChat);
+          await loadMessages(savedChatId);
+        }
+      }
+      
+      return chatsData;
     } catch (error) {
       console.error('Error loading chats:', error);
+      return [];
     }
   };
 
@@ -204,6 +246,7 @@ function App() {
     setSelectedChat(null);
     setMessages({});
     localStorage.removeItem('token');
+    localStorage.removeItem('selectedChatId');
     if (socket) {
       socket.close();
       setSocket(null);
@@ -213,6 +256,9 @@ function App() {
   const handleSelectChat = (chat) => {
     setSelectedChat(chat);
     const chatId = chat._id;
+    
+    // Сохраняем выбранный чат в localStorage
+    localStorage.setItem('selectedChatId', chatId);
     
     if (!messages[chatId]) {
       loadMessages(chatId);
@@ -235,6 +281,11 @@ function App() {
     // Загружаем сразу
     loadMessages(chatId);
     
+    // Присоединяемся к комнате при выборе чата
+    if (socket && socket.connected) {
+      socket.emit('join-room', chatId);
+    }
+    
     // Затем обновляем каждые 5 секунд
     const intervalId = setInterval(() => {
       if (selectedChat?._id === chatId) {
@@ -243,7 +294,7 @@ function App() {
     }, 5000);
     
     return () => clearInterval(intervalId);
-  }, [selectedChat?._id, token]);
+  }, [selectedChat?._id, token, socket]);
 
   const handleCreateChat = async (userId) => {
     try {
