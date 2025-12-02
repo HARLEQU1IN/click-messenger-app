@@ -53,6 +53,10 @@ function ChatWindow({ chat, messages, currentUser, onSendMessage }) {
     }
   };
 
+  const getMessageStatusClass = (status) => {
+    return `status-${status || 'sent'}`;
+  };
+
   return (
     <div className="chat-window">
       <div className="chat-header">
@@ -92,7 +96,7 @@ function ChatWindow({ chat, messages, currentUser, onSendMessage }) {
                         {message.createdAt ? formatTime(message.createdAt) : ''}
                       </div>
                       {isOwn && (
-                        <div className={`message-status status-${message.status || 'sent'}`}>
+                        <div className={`message-status ${getMessageStatusClass(message.status)}`}>
                           {getMessageStatusIcon(message.status || 'sent', isOwn)}
                         </div>
                       )}
