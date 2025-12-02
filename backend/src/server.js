@@ -5,6 +5,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+const authRoutes = require('./routes/auth');
+const chatRoutes = require('./routes/chats');
+const Message = require('./models/Message');
+const Chat = require('./models/Chat');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -23,6 +28,9 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
+
+app.use('/api/auth', authRoutes);
+app.use('/api/chats', chatRoutes);
 
 // Socket.io connection
 io.on('connection', (socket) => {
@@ -45,8 +53,39 @@ io.on('connection', (socket) => {
   });
 
   // Send message
-  socket.on('send-message', (data) => {
-    io.to(data.roomId).emit('receive-message', data);
+  socket.on('send-message', async (data) => {
+    try {
+      const { chatId, senderId, text } = data;
+
+      // Сохраняем сообщение в БД
+      const message = new Message({
+        chat: chatId,
+        sender: senderId,
+        text: text
+      });
+      await message.save();
+
+      // Обновляем последнее сообщение в чате
+      await Chat.findByIdAndUpdate(chatId, {
+        lastMessage: message._id,
+        lastMessageAt: new Date()
+      });
+
+      // Заполняем данные отправителя
+      await message.populate('sender', 'username avatar');
+
+      // Отправляем сообщение всем в комнате
+      io.to(chatId).emit('receive-message', {
+        _id: message._id,
+        chat: chatId,
+        sender: message.sender,
+        text: message.text,
+        createdAt: message.createdAt
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      socket.emit('error', { message: 'Ошибка отправки сообщения' });
+    }
   });
 });
 
