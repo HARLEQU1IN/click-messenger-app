@@ -22,12 +22,10 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: backend/package-lock.json
     
     - name: Install dependencies
       working-directory: ./backend
-      run: npm ci
+      run: npm install
     
     - name: Run linter (if available)
       working-directory: ./backend
@@ -54,12 +52,10 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: web/package-lock.json
     
     - name: Install dependencies
       working-directory: ./web
-      run: npm ci
+      run: npm install
     
     - name: Run linter (if available)
       working-directory: ./web
@@ -90,13 +86,13 @@ jobs:
     - name: Check backend dependencies
       working-directory: ./backend
       run: |
-        npm ci
+        npm install
         echo "Backend dependencies installed successfully"
     
     - name: Check frontend dependencies
       working-directory: ./web
       run: |
-        npm ci
+        npm install
         echo "Frontend dependencies installed successfully"
     
     - name: Verify backend can start
