@@ -1,0 +1,28 @@
+{
+  "name": "messenger-app",
+  "version": "1.0.0",
+  "description": "Современный мессенджер по типу Telegram",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../web && npm install && cd ../desktop && npm install && cd ../mobile && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:web": "cd web && npm start",
+    "dev:desktop": "cd desktop && npm run electron",
+    "dev:mobile": "cd mobile && npm start"
+  },
+  "keywords": [
+    "messenger",
+    "chat",
+    "telegram",
+    "real-time"
+  ],
+  "author": "",
+  "license": "MIT",
+  "workspaces": [
+    "backend",
+    "web",
+    "desktop",
+    "mobile"
+  ]
+}
+
