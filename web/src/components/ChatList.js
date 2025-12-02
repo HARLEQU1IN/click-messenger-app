@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './ChatList.css';
 
+const API_URL = 'http://localhost:5000/api';
+
 function ChatList({ chats, selectedChat, onSelectChat, onCreateChat, users, currentUserId }) {
   const [showUserList, setShowUserList] = useState(false);
 
@@ -14,12 +16,38 @@ function ChatList({ chats, selectedChat, onSelectChat, onCreateChat, users, curr
   };
 
   const getChatAvatar = (chat) => {
-    if (!chat) return '👤';
+    if (!chat) return null;
+    if (chat.type === 'group') {
+      // Для групп возвращаем сам чат (чтобы использовать avatar группы)
+      return chat;
+    }
     if (chat.type === 'private' && chat.participants && Array.isArray(chat.participants)) {
       const otherUser = chat.participants.find(p => p && p._id && p._id !== currentUserId);
-      return otherUser && otherUser.avatar ? otherUser.avatar : '👤';
+      return otherUser || null;
     }
-    return '👥';
+    return null;
+  };
+
+  const getChatAvatarUrl = (chat) => {
+    if (chat.type === 'group' && chat.avatar) {
+      return chat.avatar.startsWith('http') ? chat.avatar : `${API_URL}/uploads/${chat.avatar}`;
+    }
+    const user = getChatAvatar(chat);
+    if (user && user.avatar) {
+      return user.avatar.startsWith('http') ? user.avatar : `${API_URL}/uploads/${user.avatar}`;
+    }
+    return null;
+  };
+
+  const getChatAvatarInitial = (chat) => {
+    if (chat.type === 'group') {
+      return chat.name?.[0]?.toUpperCase() || '👥';
+    }
+    const user = getChatAvatar(chat);
+    if (user && user.username) {
+      return user.username[0].toUpperCase();
+    }
+    return '👤';
   };
 
   return (
@@ -47,7 +75,23 @@ function ChatList({ chats, selectedChat, onSelectChat, onCreateChat, users, curr
                     }
                   }}
                 >
-                  <span className="user-avatar">{user.avatar || '👤'}</span>
+                  <div className="user-avatar">
+                    {user.avatar ? (
+                      <img 
+                        src={user.avatar.startsWith('http') ? user.avatar : `${API_URL}/uploads/${user.avatar}`} 
+                        alt={user.username}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) {
+                            e.target.nextSibling.style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    {(!user.avatar || user.avatar === '') && (
+                      <span>{user.username?.[0]?.toUpperCase() || '👤'}</span>
+                    )}
+                  </div>
                   <span className="user-name">{user.username || 'Unknown'}</span>
                   {user.online && <span className="online-indicator">●</span>}
                 </div>
@@ -68,7 +112,23 @@ function ChatList({ chats, selectedChat, onSelectChat, onCreateChat, users, curr
                 className={`chat-item ${selectedChat?._id === chat._id ? 'active' : ''}`}
                 onClick={() => onSelectChat(chat)}
               >
-                <span className="chat-avatar">{getChatAvatar(chat)}</span>
+                <div className="chat-avatar">
+                  {getChatAvatarUrl(chat) ? (
+                    <img 
+                      src={getChatAvatarUrl(chat)} 
+                      alt={getChatName(chat)}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        if (e.target.nextSibling) {
+                          e.target.nextSibling.style.display = 'flex';
+                        }
+                      }}
+                    />
+                  ) : null}
+                  {!getChatAvatarUrl(chat) && (
+                    <span>{getChatAvatarInitial(chat)}</span>
+                  )}
+                </div>
                 <div className="chat-info">
                   <div className="chat-name">{getChatName(chat)}</div>
                   {chat.lastMessage && chat.lastMessage.text && (

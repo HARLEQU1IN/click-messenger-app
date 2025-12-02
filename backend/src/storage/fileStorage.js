@@ -180,6 +180,13 @@ const ChatStorage = {
     };
     await writeFile('chats.json', chats);
     return chats[index];
+  },
+
+  async delete(id) {
+    const chats = await this.findAll();
+    const filteredChats = chats.filter(c => c._id !== id);
+    await writeFile('chats.json', filteredChats);
+    return true;
   }
 };
 
@@ -237,6 +244,13 @@ const MessageStorage = {
     };
     await writeFile('messages.json', messages);
     return messages[index];
+  },
+
+  async delete(id) {
+    const messages = await this.findAll();
+    const filteredMessages = messages.filter(m => m._id !== id);
+    await writeFile('messages.json', filteredMessages);
+    return true;
   }
 };
 

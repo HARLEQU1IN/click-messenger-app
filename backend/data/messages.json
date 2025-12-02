@@ -242,5 +242,18 @@
     "readBy": [],
     "createdAt": "2025-12-02T20:58:12.190Z",
     "updatedAt": "2025-12-02T20:58:15.266Z"
+  },
+  {
+    "_id": "2324b6efa6dac77f75fd0f2e285b3065",
+    "chat": "a1e3fc6aad8c8a541337f9ed1e90f7d5",
+    "sender": "dcbcc2d3c58944e111afaf3301ec19e5",
+    "text": "привет",
+    "audioUrl": null,
+    "type": "text",
+    "status": "delivered",
+    "read": false,
+    "readBy": [],
+    "createdAt": "2025-12-02T21:48:36.282Z",
+    "updatedAt": "2025-12-02T21:48:36.496Z"
   }
 ]

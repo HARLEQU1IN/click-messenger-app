@@ -9,6 +9,10 @@ class User {
     this.avatar = data.avatar || '';
     this.online = data.online || false;
     this.lastSeen = data.lastSeen || new Date().toISOString();
+    this.phone = data.phone || '';
+    this.bio = data.bio || '';
+    this.birthday = data.birthday || '';
+    this.displayName = data.displayName || data.username;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }

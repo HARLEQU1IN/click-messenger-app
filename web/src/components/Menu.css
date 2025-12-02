@@ -101,12 +101,21 @@
   color: white;
   flex-shrink: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .menu-user-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.menu-user-avatar span {
+  position: relative;
+  z-index: 1;
 }
 
 .menu-user-details {

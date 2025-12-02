@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './Menu.css';
 
+const API_URL = 'http://localhost:5000/api';
+
 function Menu({ user, onClose, onProfile, onCreateGroup, onContacts, onCalls, onFavorites, onSettings, darkMode, onToggleDarkMode }) {
   const [activeItem, setActiveItem] = useState(null);
 
@@ -32,8 +34,18 @@ function Menu({ user, onClose, onProfile, onCreateGroup, onContacts, onCalls, on
           <div className="menu-user-info">
             <div className="menu-user-avatar">
               {user.avatar ? (
-                <img src={user.avatar} alt={user.username} />
-              ) : (
+                <img 
+                  src={user.avatar.startsWith('http') ? user.avatar : `${API_URL}/uploads/${user.avatar}`} 
+                  alt={user.username}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    if (e.target.nextSibling) {
+                      e.target.nextSibling.style.display = 'flex';
+                    }
+                  }}
+                />
+              ) : null}
+              {(!user.avatar || user.avatar === '') && (
                 <span>{user.username?.[0]?.toUpperCase() || 'U'}</span>
               )}
             </div>

@@ -7,7 +7,7 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
 
-function ChatWindow({ chat, messages, currentUser, onSendMessage, onSendVoiceMessage }) {
+function ChatWindow({ chat, messages, currentUser, onSendMessage, onSendVoiceMessage, onStartCall, onGroupSettings }) {
   const [inputText, setInputText] = useState('');
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -153,12 +153,44 @@ function ChatWindow({ chat, messages, currentUser, onSendMessage, onSendVoiceMes
   return (
     <div className="chat-window">
       <div className="chat-header">
-        <h3>{getChatName()}</h3>
-        {chat && chat.type === 'private' && chat.participants && Array.isArray(chat.participants) && (
-          <span className="chat-status">
-            {chat.participants.find(p => p && p._id && (p._id !== (currentUser._id || currentUser.id)))?.online ? '🟢 Онлайн' : '⚫ Не в сети'}
-          </span>
-        )}
+        <div className="chat-header-left">
+          <h3>{getChatName()}</h3>
+          {chat && chat.type === 'private' && chat.participants && Array.isArray(chat.participants) && (
+            <span className="chat-status">
+              {chat.participants.find(p => p && p._id && (p._id !== (currentUser._id || currentUser.id)))?.online ? '🟢 Онлайн' : '⚫ Не в сети'}
+            </span>
+          )}
+          {chat && chat.type === 'group' && chat.participants && Array.isArray(chat.participants) && (
+            <span className="chat-status">
+              {chat.participants.length} {chat.participants.length === 1 ? 'участник' : chat.participants.length < 5 ? 'участника' : 'участников'}
+            </span>
+          )}
+        </div>
+        <div className="chat-header-right">
+          {chat && chat.type === 'group' && onGroupSettings && (
+            <button 
+              className="group-settings-button-header"
+              onClick={() => onGroupSettings(chat)}
+              title="Настройки группы"
+            >
+              ⚙️
+            </button>
+          )}
+          {chat && chat.type === 'private' && onStartCall && (
+            <button 
+              className="call-button-header"
+              onClick={() => {
+                const otherUser = chat.participants?.find(p => p && p._id && (p._id !== (currentUser._id || currentUser.id)));
+                if (otherUser) {
+                  onStartCall(otherUser);
+                }
+              }}
+              title="Позвонить"
+            >
+              📞
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="messages-container">

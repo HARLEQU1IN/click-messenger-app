@@ -1,0 +1,465 @@
+.group-settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.group-settings-container {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.3s ease;
+  border: 1px solid var(--border);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.group-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.group-settings-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.group-settings-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.group-settings-close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.group-settings-error {
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  padding: 12px 20px;
+  margin: 0 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.group-settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.group-settings-section {
+  margin-bottom: 30px;
+}
+
+.group-settings-avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.group-settings-avatar-wrapper:hover {
+  transform: scale(1.05);
+}
+
+.group-settings-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.group-settings-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+}
+
+.group-settings-avatar-edit-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  border: 3px solid var(--bg-secondary);
+  transition: all 0.2s;
+}
+
+.group-settings-avatar-edit-btn:hover {
+  background: var(--accent-hover);
+  transform: scale(1.1);
+}
+
+.group-settings-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.group-settings-value {
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.group-settings-display-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+}
+
+.group-settings-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.group-settings-edit-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.group-settings-edit-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.group-settings-input {
+  flex: 1;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.group-settings-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+}
+
+.group-settings-save-btn,
+.group-settings-cancel-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.group-settings-save-btn {
+  background: var(--accent);
+  color: white;
+}
+
+.group-settings-save-btn:hover {
+  background: var(--accent-hover);
+}
+
+.group-settings-cancel-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.group-settings-cancel-btn:hover {
+  background: var(--bg-primary);
+}
+
+.group-settings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.group-settings-add-btn {
+  padding: 6px 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.group-settings-add-btn:hover {
+  background: var(--accent-hover);
+}
+
+.group-settings-add-members {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.group-settings-search-input {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.group-settings-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.group-settings-users-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.group-settings-no-users {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.group-settings-user-item,
+.group-settings-participant-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.group-settings-user-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.group-settings-participant-item {
+  cursor: default;
+}
+
+.group-settings-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.group-settings-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.group-settings-user-avatar span {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.group-settings-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-settings-user-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.group-settings-you {
+  color: var(--text-secondary);
+  font-weight: normal;
+  font-size: 13px;
+}
+
+.group-settings-user-email {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-settings-remove-btn {
+  background: transparent;
+  border: none;
+  color: #f44336;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.group-settings-remove-btn:hover {
+  opacity: 1;
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.group-settings-participants-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.group-settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.group-settings-leave-btn,
+.group-settings-delete-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.group-settings-leave-btn {
+  background: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.group-settings-leave-btn:hover:not(:disabled) {
+  background: rgba(255, 152, 0, 0.2);
+}
+
+.group-settings-delete-btn {
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.group-settings-delete-btn:hover:not(:disabled) {
+  background: rgba(244, 67, 54, 0.2);
+}
+
+.group-settings-leave-btn:disabled,
+.group-settings-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Scrollbar styling */
+.group-settings-content::-webkit-scrollbar,
+.group-settings-users-list::-webkit-scrollbar,
+.group-settings-participants-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.group-settings-content::-webkit-scrollbar-track,
+.group-settings-users-list::-webkit-scrollbar-track,
+.group-settings-participants-list::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.group-settings-content::-webkit-scrollbar-thumb,
+.group-settings-users-list::-webkit-scrollbar-thumb,
+.group-settings-participants-list::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+.group-settings-content::-webkit-scrollbar-thumb:hover,
+.group-settings-users-list::-webkit-scrollbar-thumb:hover,
+.group-settings-participants-list::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+

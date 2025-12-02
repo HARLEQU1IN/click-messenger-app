@@ -5,6 +5,11 @@ import Login from './components/Login';
 import ChatList from './components/ChatList';
 import ChatWindow from './components/ChatWindow';
 import Menu from './components/Menu';
+import CallWindow from './components/CallWindow';
+import Profile from './components/Profile';
+import CreateGroup from './components/CreateGroup';
+import GroupSettings from './components/GroupSettings';
+import useWebRTC from './hooks/useWebRTC';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
@@ -20,6 +25,12 @@ function App() {
   const [users, setUsers] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
   const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') !== 'false');
+  const [activeCall, setActiveCall] = useState(null);
+  const [callRemoteUser, setCallRemoteUser] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [selectedGroupForSettings, setSelectedGroupForSettings] = useState(null);
 
   // Применяем темный режим
   useEffect(() => {
@@ -60,7 +71,7 @@ function App() {
             }
           }
           
-          connectSocket();
+          connectSocket(userData);
         })
         .catch(() => {
           localStorage.removeItem('token');
@@ -77,7 +88,7 @@ function App() {
     };
   }, [token]);
 
-  const connectSocket = () => {
+  const connectSocket = (userData) => {
     if (socket && socket.connected) {
       socket.close();
     }
@@ -93,10 +104,28 @@ function App() {
 
     newSocket.on('connect', () => {
       console.log('Socket connected:', newSocket.id);
+      // Регистрируем пользователя для звонков
+      const currentUser = userData || user;
+      if (currentUser && (currentUser._id || currentUser.id)) {
+        const userId = String(currentUser._id || currentUser.id);
+        newSocket.emit('register-user', userId);
+        console.log('User registered for calls:', userId);
+      }
       // Присоединяемся к комнате выбранного чата, если он есть
       const currentChatId = selectedChat?._id || localStorage.getItem('selectedChatId');
       if (currentChatId) {
         newSocket.emit('join-room', currentChatId);
+      }
+    });
+
+    // Re-register user on reconnect
+    newSocket.on('reconnect', () => {
+      console.log('Socket reconnected:', newSocket.id);
+      const currentUser = userData || user;
+      if (currentUser && (currentUser._id || currentUser.id)) {
+        const userId = String(currentUser._id || currentUser.id);
+        newSocket.emit('register-user', userId);
+        console.log('User re-registered for calls:', userId);
       }
     });
 
@@ -470,6 +499,134 @@ function App() {
     });
   };
 
+  // WebRTC hook for calls
+  const {
+    localStream,
+    remoteStream,
+    isCallActive,
+    callStatus,
+    callDuration,
+    connectionState,
+    isMuted,
+    localVideoRef,
+    remoteVideoRef,
+    startCall: startWebRTCCall,
+    acceptCall: acceptWebRTCCall,
+    rejectCall: rejectWebRTCCall,
+    endCall: endWebRTCCall,
+    toggleMute: toggleMuteCall
+  } = useWebRTC(socket, user?._id || user?.id, callRemoteUser?._id);
+
+  // Handle incoming call
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleIncomingCall = (data) => {
+      console.log('=== Incoming Call Received ===');
+      console.log('Call data:', data);
+      console.log('From user ID:', data.from);
+      console.log('Current user ID:', user?._id || user?.id);
+      console.log('Available users:', users.map(u => ({ id: u._id || u.id, username: u.username })));
+      
+      // Find user by ID - try both string and direct comparison
+      const callerUser = users.find(u => {
+        const userId = String(u._id || u.id);
+        const callerId = String(data.from);
+        return userId === callerId;
+      }) || { _id: data.from, username: 'Неизвестный пользователь' };
+      
+      console.log('Found caller user:', callerUser);
+      
+      setCallRemoteUser(callerUser);
+      setActiveCall({
+        caller: callerUser,
+        receiver: user
+      });
+      // Store offer for later acceptance
+      window.pendingCallOffer = data.offer;
+      window.pendingCallFrom = data.from;
+      
+      console.log('Call window should be displayed now');
+    };
+
+    socket.on('incoming-call', handleIncomingCall);
+
+    return () => {
+      socket.off('incoming-call', handleIncomingCall);
+    };
+  }, [socket, user, users]);
+
+  const handleStartCall = async (otherUser) => {
+    alert('Функция звонков находится в разработке. Скоро будет доступна!');
+    return;
+    
+    // Закомментированный код для будущей реализации
+    /*
+    try {
+      if (!socket || !socket.connected) {
+        alert('Нет подключения к серверу. Перезагрузите страницу.');
+        return;
+      }
+
+      if (!otherUser || !otherUser._id) {
+        alert('Ошибка: не удалось определить пользователя для звонка');
+        return;
+      }
+
+      const otherUserId = String(otherUser._id || otherUser.id);
+      const currentUserId = String(user?._id || user?.id);
+
+      console.log('=== Starting Call ===');
+      console.log('From user:', currentUserId, user?.username);
+      console.log('To user:', otherUserId, otherUser?.username);
+      console.log('Socket connected:', socket.connected);
+      console.log('Socket ID:', socket.id);
+
+      setCallRemoteUser(otherUser);
+      setActiveCall({
+        caller: user,
+        receiver: otherUser
+      });
+      
+      console.log('Call state set, starting WebRTC call...');
+      await startWebRTCCall(otherUserId);
+      console.log('WebRTC call started');
+    } catch (error) {
+      console.error('Error starting call:', error);
+      alert('Ошибка при начале звонка: ' + error.message);
+      setActiveCall(null);
+      setCallRemoteUser(null);
+    }
+    */
+  };
+
+  const handleAcceptCall = async () => {
+    try {
+      const offer = window.pendingCallOffer;
+      if (offer) {
+        await acceptWebRTCCall(offer);
+        window.pendingCallOffer = null;
+        window.pendingCallFrom = null;
+      }
+    } catch (error) {
+      console.error('Error accepting call:', error);
+      alert('Ошибка при принятии звонка: ' + error.message);
+      handleEndCall();
+    }
+  };
+
+  const handleRejectCall = () => {
+    rejectWebRTCCall();
+    setActiveCall(null);
+    setCallRemoteUser(null);
+  };
+
+  const handleEndCall = () => {
+    endWebRTCCall();
+    setActiveCall(null);
+    setCallRemoteUser(null);
+  };
+
   const handleSendVoiceMessage = (message) => {
     if (!socket || !socket.connected) {
       console.error('Socket not connected');
@@ -506,15 +663,28 @@ function App() {
   // Обработчики меню
   const handleProfile = () => {
     setShowMenu(false);
-    alert(`Профиль пользователя: ${user.username}\nEmail: ${user.email || 'Не указан'}\nID: ${user._id}`);
+    setShowProfile(true);
+  };
+
+  const handleProfileUpdate = async (updatedUser) => {
+    setUser(updatedUser);
+    // Обновляем пользователя в списке пользователей
+    setUsers(prev => prev.map(u => 
+      (u._id === updatedUser._id || u.id === updatedUser._id) ? updatedUser : u
+    ));
   };
 
   const handleCreateGroup = () => {
     setShowMenu(false);
-    const groupName = prompt('Введите название группы:');
-    if (groupName) {
-      alert(`Группа "${groupName}" будет создана. (Функция в разработке)`);
-    }
+    setShowCreateGroup(true);
+  };
+
+  const handleGroupCreated = async (newGroup) => {
+    // Обновляем список чатов
+    await loadChats();
+    // Выбираем созданную группу
+    setSelectedChat(newGroup);
+    setShowCreateGroup(false);
   };
 
   const handleContacts = () => {
@@ -574,6 +744,11 @@ function App() {
             currentUser={user}
             onSendMessage={handleSendMessage}
             onSendVoiceMessage={handleSendVoiceMessage}
+            onStartCall={handleStartCall}
+            onGroupSettings={(group) => {
+              setSelectedGroupForSettings(group);
+              setShowGroupSettings(true);
+            }}
           />
         ) : (
           <div className="welcome-screen">
@@ -595,6 +770,64 @@ function App() {
           onSettings={handleSettings}
           darkMode={darkMode}
           onToggleDarkMode={handleToggleDarkMode}
+        />
+      )}
+
+      {activeCall && (
+        <CallWindow
+          call={activeCall}
+          currentUser={user}
+          onAccept={handleAcceptCall}
+          onReject={handleRejectCall}
+          onEnd={handleEndCall}
+          onToggleMute={toggleMuteCall}
+          callStatus={callStatus}
+          isCallActive={isCallActive}
+          callDuration={callDuration}
+          connectionState={connectionState}
+          isMuted={isMuted}
+          localVideoRef={localVideoRef}
+          remoteVideoRef={remoteVideoRef}
+        />
+      )}
+
+      {showProfile && (
+        <Profile
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onUpdate={handleProfileUpdate}
+        />
+      )}
+
+      {showCreateGroup && (
+        <CreateGroup
+          users={users}
+          currentUser={user}
+          onClose={() => setShowCreateGroup(false)}
+          onGroupCreated={handleGroupCreated}
+        />
+      )}
+
+      {showGroupSettings && selectedGroupForSettings && (
+        <GroupSettings
+          chat={selectedGroupForSettings}
+          currentUser={user}
+          users={users}
+          onClose={() => {
+            setShowGroupSettings(false);
+            setSelectedGroupForSettings(null);
+          }}
+          onGroupUpdated={async (updatedGroup) => {
+            await loadChats();
+            setSelectedChat(updatedGroup);
+            setSelectedGroupForSettings(updatedGroup);
+          }}
+          onGroupDeleted={async () => {
+            await loadChats();
+            setSelectedChat(null);
+            setShowGroupSettings(false);
+            setSelectedGroupForSettings(null);
+          }}
         />
       )}
     </div>

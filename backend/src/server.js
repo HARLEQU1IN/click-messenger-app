@@ -49,12 +49,24 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Маршрут не найден' });
 });
 
+// WebRTC signaling for calls
+// Store user socket mapping (outside connection handler to persist across connections)
+const userSockets = new Map();
+
 // Socket.io connection
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    // Remove user from mapping
+    for (const [userId, socketId] of userSockets.entries()) {
+      if (socketId === socket.id) {
+        userSockets.delete(userId);
+        console.log(`User ${userId} disconnected`);
+        break;
+      }
+    }
   });
 
   // Join room (chat)
@@ -319,6 +331,103 @@ io.on('connection', (socket) => {
       console.log(`Message ${messageId} marked as read`);
     } catch (error) {
       console.error('Error marking message as read:', error);
+    }
+  });
+
+  // Register user for calls
+  socket.on('register-user', (userId) => {
+    userSockets.set(String(userId), socket.id);
+    console.log(`User ${userId} registered with socket ${socket.id}`);
+    console.log('Current registered users:', Array.from(userSockets.keys()));
+  });
+
+  // Initiate call
+  socket.on('call-user', (data, callback) => {
+    try {
+      const { from, to, offer, chatId } = data;
+      
+      console.log('=== Call Request Received ===');
+      console.log('From:', from);
+      console.log('To:', to);
+      console.log('Has offer:', !!offer);
+      console.log('All registered users:', Array.from(userSockets.entries()));
+      
+      if (!from || !to) {
+        console.error('Missing from or to in call request');
+        if (callback) callback({ error: 'Missing user IDs' });
+        return;
+      }
+
+      const targetSocketId = userSockets.get(String(to));
+      
+      console.log('Target socket ID:', targetSocketId);
+      
+      if (targetSocketId) {
+        const callData = {
+          from: String(from),
+          offer: offer,
+          chatId: chatId || null
+        };
+        
+        console.log('Sending incoming-call to socket:', targetSocketId);
+        console.log('Call data:', { from: callData.from, hasOffer: !!callData.offer });
+        
+        io.to(targetSocketId).emit('incoming-call', callData);
+        console.log(`✅ Call sent from ${from} to ${to} (socket: ${targetSocketId})`);
+        
+        if (callback) callback({ success: true });
+      } else {
+        console.log(`❌ User ${to} not found in registered users`);
+        console.log('Available user IDs:', Array.from(userSockets.keys()));
+        socket.emit('call-failed', { reason: 'User is offline' });
+        if (callback) callback({ error: 'User is offline' });
+      }
+    } catch (error) {
+      console.error('Error handling call-user:', error);
+      if (callback) callback({ error: error.message });
+    }
+  });
+
+  // Accept call
+  socket.on('accept-call', (data) => {
+    const { to, answer } = data;
+    const targetSocketId = userSockets.get(String(to));
+    
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('call-accepted', { answer });
+      console.log(`Call accepted by ${socket.id}`);
+    }
+  });
+
+  // Reject call
+  socket.on('reject-call', (data) => {
+    const { to } = data;
+    const targetSocketId = userSockets.get(String(to));
+    
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('call-rejected');
+      console.log(`Call rejected`);
+    }
+  });
+
+  // ICE candidate exchange
+  socket.on('ice-candidate', (data) => {
+    const { to, candidate } = data;
+    const targetSocketId = userSockets.get(String(to));
+    
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('ice-candidate', { candidate });
+    }
+  });
+
+  // End call
+  socket.on('end-call', (data) => {
+    const { to } = data;
+    const targetSocketId = userSockets.get(String(to));
+    
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('call-ended');
+      console.log(`Call ended`);
     }
   });
 });

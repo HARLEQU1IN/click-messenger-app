@@ -1,7 +1,12 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
 const { ChatStorage, MessageStorage, UserStorage } = require('../storage/fileStorage');
 const router = express.Router();
+
+const uploadsDir = path.join(__dirname, '../../uploads');
 
 // Middleware для проверки токена
 const authenticate = async (req, res, next) => {
@@ -229,6 +234,360 @@ router.get('/users/all', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error loading users:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Setup multer for group avatar uploads
+const ensureUploadsDir = async () => {
+  try {
+    await fs.mkdir(uploadsDir, { recursive: true });
+  } catch (error) {
+    console.error('Error creating uploads directory:', error);
+  }
+};
+
+const groupAvatarStorage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    await ensureUploadsDir();
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname) || '';
+    const decodedOriginalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const originalName = path.basename(decodedOriginalName, ext);
+    const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 50);
+    cb(null, `group-avatar-${uniqueSuffix}${ext}`);
+  }
+});
+
+const groupAvatarUpload = multer({
+  storage: groupAvatarStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB max
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Только изображения разрешены'), false);
+    }
+  }
+});
+
+// Upload group avatar
+router.post('/group/avatar', authenticate, groupAvatarUpload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Файл аватара не предоставлен' });
+    }
+
+    const avatarUrl = req.file.filename;
+    res.json({ avatar: avatarUrl });
+  } catch (error) {
+    console.error('Error uploading group avatar:', error);
+    res.status(500).json({ error: error.message || 'Ошибка загрузки аватара группы' });
+  }
+});
+
+// Create group chat
+router.post('/group', authenticate, async (req, res) => {
+  try {
+    const { name, participants, avatar } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Название группы обязательно' });
+    }
+
+    if (!participants || !Array.isArray(participants) || participants.length < 2) {
+      return res.status(400).json({ error: 'Необходимо выбрать хотя бы одного участника' });
+    }
+
+    // Проверяем, что все участники существуют
+    const allParticipants = [String(req.userId), ...participants.map(p => String(p))];
+    const uniqueParticipants = [...new Set(allParticipants)];
+
+    for (const participantId of uniqueParticipants) {
+      const user = await UserStorage.findById(participantId);
+      if (!user) {
+        return res.status(404).json({ error: `Пользователь ${participantId} не найден` });
+      }
+    }
+
+    // Создаем группу
+    const chat = await ChatStorage.create({
+      name: name.trim(),
+      type: 'group',
+      participants: uniqueParticipants,
+      avatar: avatar || '',
+      lastMessage: null,
+      lastMessageAt: new Date().toISOString()
+    });
+
+    const populatedChat = await populateChat(chat);
+    res.status(201).json(populatedChat);
+  } catch (error) {
+    console.error('Error creating group:', error);
+    res.status(500).json({ error: error.message || 'Ошибка при создании группы' });
+  }
+});
+
+// Update group (name, avatar)
+router.put('/group/:chatId', authenticate, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { name, avatar } = req.body;
+
+    const chat = await ChatStorage.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Группа не найдена' });
+    }
+
+    if (chat.type !== 'group') {
+      return res.status(400).json({ error: 'Это не группа' });
+    }
+
+    // Проверяем, что пользователь является участником
+    const participants = Array.isArray(chat.participants) ? chat.participants : [];
+    const userId = String(req.userId);
+    const isParticipant = participants.some(p => String(p) === userId);
+    
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Вы не являетесь участником группы' });
+    }
+
+    const updates = {};
+    if (name !== undefined && name.trim()) {
+      updates.name = name.trim();
+    }
+    if (avatar !== undefined) {
+      updates.avatar = avatar;
+    }
+
+    const updatedChat = await ChatStorage.update(chatId, updates);
+    const populatedChat = await populateChat(updatedChat);
+    res.json(populatedChat);
+  } catch (error) {
+    console.error('Error updating group:', error);
+    res.status(500).json({ error: error.message || 'Ошибка при обновлении группы' });
+  }
+});
+
+// Update group avatar
+router.put('/group/:chatId/avatar', authenticate, groupAvatarUpload.single('avatar'), async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Файл аватара не предоставлен' });
+    }
+
+    const chat = await ChatStorage.findById(chatId);
+    if (!chat) {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(404).json({ error: 'Группа не найдена' });
+    }
+
+    if (chat.type !== 'group') {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({ error: 'Это не группа' });
+    }
+
+    // Проверяем, что пользователь является участником
+    const participants = Array.isArray(chat.participants) ? chat.participants : [];
+    const userId = String(req.userId);
+    const isParticipant = participants.some(p => String(p) === userId);
+    
+    if (!isParticipant) {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(403).json({ error: 'Вы не являетесь участником группы' });
+    }
+
+    // Удаляем старый аватар, если есть
+    if (chat.avatar) {
+      const oldAvatarPath = path.join(uploadsDir, chat.avatar);
+      await fs.unlink(oldAvatarPath).catch(() => {});
+    }
+
+    const updatedChat = await ChatStorage.update(chatId, { avatar: req.file.filename });
+    const populatedChat = await populateChat(updatedChat);
+    res.json(populatedChat);
+  } catch (error) {
+    console.error('Error updating group avatar:', error);
+    if (req.file) {
+      await fs.unlink(req.file.path).catch(() => {});
+    }
+    res.status(500).json({ error: error.message || 'Ошибка при обновлении аватара группы' });
+  }
+});
+
+// Add participants to group
+router.post('/group/:chatId/participants', authenticate, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'Необходимо указать участников' });
+    }
+
+    const chat = await ChatStorage.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Группа не найдена' });
+    }
+
+    if (chat.type !== 'group') {
+      return res.status(400).json({ error: 'Это не группа' });
+    }
+
+    // Проверяем, что пользователь является участником
+    const participants = Array.isArray(chat.participants) ? chat.participants : [];
+    const userId = String(req.userId);
+    const isParticipant = participants.some(p => String(p) === userId);
+    
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Вы не являетесь участником группы' });
+    }
+
+    // Проверяем, что все пользователи существуют
+    for (const uid of userIds) {
+      const user = await UserStorage.findById(String(uid));
+      if (!user) {
+        return res.status(404).json({ error: `Пользователь ${uid} не найден` });
+      }
+    }
+
+    // Добавляем участников (убираем дубликаты)
+    const newParticipants = [...new Set([...participants.map(p => String(p)), ...userIds.map(u => String(u))])];
+    
+    const updatedChat = await ChatStorage.update(chatId, { participants: newParticipants });
+    const populatedChat = await populateChat(updatedChat);
+    res.json(populatedChat);
+  } catch (error) {
+    console.error('Error adding participants:', error);
+    res.status(500).json({ error: error.message || 'Ошибка при добавлении участников' });
+  }
+});
+
+// Remove participant from group
+router.delete('/group/:chatId/participants/:userId', authenticate, async (req, res) => {
+  try {
+    const { chatId, userId: targetUserId } = req.params;
+    const currentUserId = String(req.userId);
+    const targetId = String(targetUserId);
+
+    const chat = await ChatStorage.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Группа не найдена' });
+    }
+
+    if (chat.type !== 'group') {
+      return res.status(400).json({ error: 'Это не группа' });
+    }
+
+    const participants = Array.isArray(chat.participants) ? chat.participants.map(p => String(p)) : [];
+    
+    // Проверяем, что текущий пользователь является участником
+    if (!participants.includes(currentUserId)) {
+      return res.status(403).json({ error: 'Вы не являетесь участником группы' });
+    }
+
+    // Проверяем, что целевой пользователь является участником
+    if (!participants.includes(targetId)) {
+      return res.status(404).json({ error: 'Пользователь не является участником группы' });
+    }
+
+    // Удаляем участника
+    const newParticipants = participants.filter(p => p !== targetId);
+    
+    // Если остался только один участник или меньше, удаляем группу
+    if (newParticipants.length <= 1) {
+      await ChatStorage.delete(chatId);
+      return res.json({ deleted: true, message: 'Группа удалена' });
+    }
+
+    const updatedChat = await ChatStorage.update(chatId, { participants: newParticipants });
+    const populatedChat = await populateChat(updatedChat);
+    res.json(populatedChat);
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    res.status(500).json({ error: error.message || 'Ошибка при удалении участника' });
+  }
+});
+
+// Leave group
+router.post('/group/:chatId/leave', authenticate, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const userId = String(req.userId);
+
+    const chat = await ChatStorage.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Группа не найдена' });
+    }
+
+    if (chat.type !== 'group') {
+      return res.status(400).json({ error: 'Это не группа' });
+    }
+
+    const participants = Array.isArray(chat.participants) ? chat.participants.map(p => String(p)) : [];
+    
+    if (!participants.includes(userId)) {
+      return res.status(403).json({ error: 'Вы не являетесь участником группы' });
+    }
+
+    // Удаляем пользователя из участников
+    const newParticipants = participants.filter(p => p !== userId);
+    
+    // Если остался только один участник или меньше, удаляем группу
+    if (newParticipants.length <= 1) {
+      await ChatStorage.delete(chatId);
+      return res.json({ deleted: true, message: 'Группа удалена' });
+    }
+
+    const updatedChat = await ChatStorage.update(chatId, { participants: newParticipants });
+    res.json({ left: true, message: 'Вы покинули группу' });
+  } catch (error) {
+    console.error('Error leaving group:', error);
+    res.status(500).json({ error: error.message || 'Ошибка при выходе из группы' });
+  }
+});
+
+// Delete group
+router.delete('/group/:chatId', authenticate, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const userId = String(req.userId);
+
+    const chat = await ChatStorage.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Группа не найдена' });
+    }
+
+    if (chat.type !== 'group') {
+      return res.status(400).json({ error: 'Это не группа' });
+    }
+
+    // Проверяем, что пользователь является участником (для простоты, можно добавить проверку на создателя)
+    const participants = Array.isArray(chat.participants) ? chat.participants.map(p => String(p)) : [];
+    
+    if (!participants.includes(userId)) {
+      return res.status(403).json({ error: 'Вы не являетесь участником группы' });
+    }
+
+    // Удаляем группу
+    await ChatStorage.delete(chatId);
+    
+    // Удаляем все сообщения группы
+    const messages = await MessageStorage.find({ chat: chatId });
+    for (const message of messages) {
+      await MessageStorage.delete(message._id);
+    }
+
+    res.json({ deleted: true, message: 'Группа удалена' });
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    res.status(500).json({ error: error.message || 'Ошибка при удалении группы' });
   }
 });
 

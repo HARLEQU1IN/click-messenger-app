@@ -7,9 +7,23 @@
       "dcbcc2d3c58944e111afaf3301ec19e5",
       "51ad50e7f54e29da6fdb463acfb116f5"
     ],
-    "lastMessage": "94782662bcd45f298ff5f8f11bb643a0",
-    "lastMessageAt": "2025-12-02T20:58:12.191Z",
+    "lastMessage": "2324b6efa6dac77f75fd0f2e285b3065",
+    "lastMessageAt": "2025-12-02T21:48:36.284Z",
     "createdAt": "2025-12-02T19:31:27.956Z",
-    "updatedAt": "2025-12-02T20:58:12.192Z"
+    "updatedAt": "2025-12-02T21:48:36.284Z"
+  },
+  {
+    "_id": "0a907b374ff3debe5fecfe8d7898e700",
+    "name": "test 1",
+    "type": "group",
+    "participants": [
+      "dcbcc2d3c58944e111afaf3301ec19e5",
+      "51ad50e7f54e29da6fdb463acfb116f5"
+    ],
+    "avatar": "",
+    "lastMessage": null,
+    "lastMessageAt": "2025-12-02T21:59:34.777Z",
+    "createdAt": "2025-12-02T21:59:34.777Z",
+    "updatedAt": "2025-12-02T21:59:34.777Z"
   }
 ]
