@@ -21,14 +21,29 @@ function generateId() {
 // Чтение данных из файла
 async function readFile(fileName) {
   try {
+    await ensureDataDir();
     const filePath = path.join(DATA_DIR, fileName);
     const data = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(data);
+    // Проверяем, что файл не пустой
+    if (!data || data.trim() === '') {
+      return [];
+    }
+    try {
+      return JSON.parse(data);
+    } catch (parseError) {
+      console.error(`Error parsing ${fileName}, file may be corrupted:`, parseError);
+      // Если файл поврежден, создаем резервную копию и возвращаем пустой массив
+      const backupPath = filePath + '.backup.' + Date.now();
+      await fs.copyFile(filePath, backupPath).catch(() => {});
+      console.log(`Created backup at ${backupPath}`);
+      return [];
+    }
   } catch (error) {
     if (error.code === 'ENOENT') {
       return [];
     }
-    throw error;
+    console.error(`Error reading ${fileName}:`, error);
+    return [];
   }
 }
 
@@ -36,7 +51,9 @@ async function readFile(fileName) {
 async function writeFile(fileName, data) {
   await ensureDataDir();
   const filePath = path.join(DATA_DIR, fileName);
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+  // Убеждаемся, что данные - это массив или объект
+  const dataToWrite = Array.isArray(data) ? data : (data || []);
+  await fs.writeFile(filePath, JSON.stringify(dataToWrite, null, 2), 'utf8');
 }
 
 // User storage

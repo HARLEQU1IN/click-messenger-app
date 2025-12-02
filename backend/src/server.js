@@ -30,6 +30,19 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Внутренняя ошибка сервера'
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Маршрут не найден' });
+});
+
 // Socket.io connection
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);

@@ -4,6 +4,7 @@ import './App.css';
 import Login from './components/Login';
 import ChatList from './components/ChatList';
 import ChatWindow from './components/ChatWindow';
+import Menu from './components/Menu';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
@@ -17,6 +18,18 @@ function App() {
   const [messages, setMessages] = useState({});
   const [socket, setSocket] = useState(null);
   const [users, setUsers] = useState([]);
+  const [showMenu, setShowMenu] = useState(false);
+  const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') !== 'false');
+
+  // Применяем темный режим
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+    localStorage.setItem('darkMode', darkMode.toString());
+  }, [darkMode]);
 
   useEffect(() => {
     if (token) {
@@ -181,9 +194,16 @@ function App() {
   const loadChats = async () => {
     try {
       const res = await axios.get(`${API_URL}/chats`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        validateStatus: (status) => status < 500 // Не бросать ошибку для 4xx
       });
-      const chatsData = res.data || [];
+      
+      if (res.status >= 400) {
+        console.error('Error loading chats:', res.status, res.data);
+        return [];
+      }
+      
+      const chatsData = Array.isArray(res.data) ? res.data : [];
       setChats(chatsData);
       
       // Восстанавливаем выбранный чат после загрузки
@@ -199,6 +219,12 @@ function App() {
       return chatsData;
     } catch (error) {
       console.error('Error loading chats:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+      }
       return [];
     }
   };
@@ -216,12 +242,30 @@ function App() {
 
   const loadMessages = async (chatId) => {
     try {
+      if (!chatId) {
+        console.error('No chatId provided');
+        return;
+      }
+      
       const res = await axios.get(`${API_URL}/chats/${chatId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        validateStatus: (status) => status < 500
       });
-      setMessages(prev => ({ ...prev, [chatId]: res.data }));
+      
+      if (res.status >= 400) {
+        console.error('Error loading messages:', res.status, res.data);
+        return;
+      }
+      
+      const messagesData = Array.isArray(res.data) ? res.data : [];
+      setMessages(prev => ({ ...prev, [chatId]: messagesData }));
     } catch (error) {
       console.error('Error loading messages:', error);
+      if (error.response) {
+        console.error('Response error:', error.response.status, error.response.data);
+      } else if (error.request) {
+        console.error('No response received');
+      }
     }
   };
 
@@ -299,10 +343,32 @@ function App() {
   const handleCreateChat = async (userId) => {
     try {
       console.log('Creating chat with user:', userId);
+      if (!userId) {
+        alert('ID пользователя не указан');
+        return;
+      }
+      
       const res = await axios.post(`${API_URL}/chats/private`, 
         { userId },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          validateStatus: (status) => status < 500
+        }
       );
+      
+      if (res.status >= 400) {
+        const errorMessage = res.data?.error || `Ошибка ${res.status}: Ошибка при создании чата`;
+        console.error('Error creating chat:', res.status, res.data);
+        alert(errorMessage);
+        return;
+      }
+      
+      if (!res.data || !res.data._id) {
+        console.error('Invalid response from server:', res.data);
+        alert('Неверный ответ от сервера');
+        return;
+      }
+      
       console.log('Chat created successfully:', res.data);
       
       // Обновляем список чатов
@@ -312,8 +378,26 @@ function App() {
       handleSelectChat(res.data);
     } catch (error) {
       console.error('Error creating chat:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Ошибка при создании чата';
-      alert(errorMessage); // Показываем ошибку пользователю
+      let errorMessage = 'Ошибка при создании чата';
+      
+      if (error.response) {
+        // Сервер ответил с ошибкой
+        errorMessage = error.response.data?.error || `Ошибка ${error.response.status}`;
+        console.error('Response error:', error.response.status, error.response.data);
+      } else if (error.request) {
+        // Запрос был отправлен, но ответа не получено
+        errorMessage = 'Сервер не отвечает. Проверьте, что сервер запущен.';
+        console.error('No response received:', error.request);
+      } else if (error.message) {
+        // Ошибка при настройке запроса
+        if (error.message.includes('JSON')) {
+          errorMessage = 'Ошибка обработки данных. Попробуйте перезагрузить страницу.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -386,6 +470,44 @@ function App() {
     });
   };
 
+  // Обработчики меню
+  const handleProfile = () => {
+    setShowMenu(false);
+    alert(`Профиль пользователя: ${user.username}\nEmail: ${user.email || 'Не указан'}\nID: ${user._id}`);
+  };
+
+  const handleCreateGroup = () => {
+    setShowMenu(false);
+    const groupName = prompt('Введите название группы:');
+    if (groupName) {
+      alert(`Группа "${groupName}" будет создана. (Функция в разработке)`);
+    }
+  };
+
+  const handleContacts = () => {
+    setShowMenu(false);
+    alert(`Всего контактов: ${users.length}\n\nСписок контактов:\n${users.map(u => `- ${u.username}`).join('\n')}`);
+  };
+
+  const handleCalls = () => {
+    setShowMenu(false);
+    alert('История звонков. (Функция в разработке)');
+  };
+
+  const handleFavorites = () => {
+    setShowMenu(false);
+    alert('Избранные сообщения. (Функция в разработке)');
+  };
+
+  const handleSettings = () => {
+    setShowMenu(false);
+    alert('Настройки приложения. (Функция в разработке)');
+  };
+
+  const handleToggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
@@ -394,7 +516,12 @@ function App() {
     <div className="app">
       <div className="sidebar">
         <div className="sidebar-header">
-          <h2>💬 Messenger</h2>
+          <div className="sidebar-header-left">
+            <button className="menu-btn" onClick={() => setShowMenu(true)} title="Меню">
+              ☰
+            </button>
+            <h2>💬 Messenger</h2>
+          </div>
           <button onClick={handleLogout} className="logout-btn">Выйти</button>
         </div>
         <ChatList
@@ -421,6 +548,21 @@ function App() {
           </div>
         )}
       </div>
+      
+      {showMenu && (
+        <Menu
+          user={user}
+          onClose={() => setShowMenu(false)}
+          onProfile={handleProfile}
+          onCreateGroup={handleCreateGroup}
+          onContacts={handleContacts}
+          onCalls={handleCalls}
+          onFavorites={handleFavorites}
+          onSettings={handleSettings}
+          darkMode={darkMode}
+          onToggleDarkMode={handleToggleDarkMode}
+        />
+      )}
     </div>
   );
 }
