@@ -3,37 +3,45 @@
   flex-direction: column;
   height: calc(100vh - 80px);
   overflow: hidden;
+  background: var(--bg-secondary);
 }
 
 .new-chat-btn {
   padding: 12px;
   margin: 10px;
-  background: #667eea;
+  background: var(--accent);
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  font-weight: 500;
+  transition: all 0.3s;
+  box-shadow: 0 2px 6px rgba(0, 136, 204, 0.3);
 }
 
 .new-chat-btn:hover {
-  background: #5568d3;
+  background: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(0, 136, 204, 0.4);
+  transform: translateY(-1px);
 }
 
 .user-list {
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
   padding: 10px;
   margin: 0 10px;
-  border-radius: 5px;
+  border-radius: 8px;
   max-height: 300px;
   overflow-y: auto;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .user-list h3 {
   margin: 0 0 10px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .user-item {
@@ -41,13 +49,14 @@
   align-items: center;
   padding: 10px;
   cursor: pointer;
-  border-radius: 5px;
-  transition: background 0.2s;
+  border-radius: 6px;
+  transition: all 0.2s;
   gap: 10px;
 }
 
 .user-item:hover {
-  background: #e0e0e0;
+  background: var(--bg-primary);
+  transform: translateX(2px);
 }
 
 .user-avatar {
@@ -57,11 +66,13 @@
 .user-name {
   flex: 1;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .online-indicator {
   color: #4caf50;
-  font-size: 12px;
+  font-size: 14px;
+  text-shadow: 0 0 4px #4caf50;
 }
 
 .chats {
@@ -75,19 +86,24 @@
   align-items: center;
   padding: 12px;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   margin-bottom: 5px;
-  transition: background 0.2s;
+  transition: all 0.2s;
   gap: 12px;
+  border: 1px solid transparent;
 }
 
 .chat-item:hover {
-  background: #f0f0f0;
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+  transform: translateX(2px);
 }
 
 .chat-item.active {
-  background: #667eea;
+  background: var(--accent);
   color: white;
+  box-shadow: 0 2px 8px rgba(0, 136, 204, 0.4);
+  border-color: var(--accent);
 }
 
 .chat-avatar {
@@ -106,6 +122,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text-primary);
 }
 
 .chat-preview {
@@ -114,15 +131,17 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text-secondary);
 }
 
 .chat-item.active .chat-preview {
-  opacity: 0.9;
+  opacity: 0.95;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .no-chats {
   text-align: center;
-  color: #999;
+  color: var(--text-secondary);
   margin-top: 50px;
   padding: 20px;
 }

@@ -2,6 +2,20 @@
   box-sizing: border-box;
 }
 
+:root {
+  --bg-primary: #212121;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #363636;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --accent: #0088cc;
+  --accent-hover: #0077b3;
+  --message-own: #0088cc;
+  --message-other: #2d2d2d;
+  --border: #3d3d3d;
+  --shadow: rgba(0, 0, 0, 0.3);
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -10,55 +24,66 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .app {
   display: flex;
   height: 100vh;
   overflow: hidden;
+  background: var(--bg-primary);
 }
 
 .sidebar {
   width: 350px;
-  background: white;
-  border-right: 1px solid #e0e0e0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  box-shadow: 2px 0 10px var(--shadow);
 }
 
 .sidebar-header {
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: var(--bg-secondary);
 }
 
 .sidebar-header h2 {
   margin: 0;
   font-size: 20px;
-  color: #333;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .logout-btn {
   padding: 8px 16px;
-  background: #f44336;
+  background: #d32f2f;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
-  transition: background 0.3s;
+  font-weight: 500;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.3);
 }
 
 .logout-btn:hover {
-  background: #d32f2f;
+  background: #b71c1c;
+  box-shadow: 0 4px 8px rgba(211, 47, 47, 0.4);
+  transform: translateY(-1px);
 }
 
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
+  background: var(--bg-primary);
 }
 
 .welcome-screen {
@@ -67,7 +92,7 @@ body {
   justify-content: center;
   align-items: center;
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0088cc 0%, #005580 100%);
   color: white;
   text-align: center;
   padding: 40px;
@@ -76,6 +101,7 @@ body {
 .welcome-screen h1 {
   font-size: 48px;
   margin-bottom: 20px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .welcome-screen p {

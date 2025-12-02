@@ -110,12 +110,23 @@ io.on('connection', (socket) => {
         const room = io.sockets.adapter.rooms.get(chatId);
         if (room && room.size > 1) {
           await MessageStorage.update(message._id, { status: 'delivered' });
+          const updatedMessageData = {
+            ...messageData,
+            status: 'delivered'
+          };
+          io.to(chatId).emit('message-status-updated', {
+            messageId: message._id,
+            status: 'delivered'
+          });
+        } else {
+          // Если только отправитель в комнате, все равно помечаем как delivered
+          await MessageStorage.update(message._id, { status: 'delivered' });
           io.to(chatId).emit('message-status-updated', {
             messageId: message._id,
             status: 'delivered'
           });
         }
-      }, 100);
+      }, 200);
       
       console.log(`Message sent to room ${chatId}`);
 

@@ -96,9 +96,7 @@ function ChatWindow({ chat, messages, currentUser, onSendMessage }) {
                         {message.createdAt ? formatTime(message.createdAt) : ''}
                       </div>
                       {isOwn && (
-                        <div className={`message-status ${getMessageStatusClass(message.status)}`}>
-                          {getMessageStatusIcon(message.status || 'sent', isOwn)}
-                        </div>
+                        <div className={`message-status ${getMessageStatusClass(message.status)}`}></div>
                       )}
                     </div>
                   </div>

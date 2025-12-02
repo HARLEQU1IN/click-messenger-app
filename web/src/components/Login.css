@@ -3,28 +3,30 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0088cc 0%, #005580 100%);
 }
 
 .login-box {
-  background: white;
+  background: #2d2d2d;
   padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   width: 100%;
   max-width: 400px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .login-box h1 {
   text-align: center;
   margin-bottom: 10px;
   font-size: 32px;
+  color: #ffffff;
 }
 
 .login-box h2 {
   text-align: center;
   margin-bottom: 30px;
-  color: #333;
+  color: #ffffff;
   font-weight: 500;
 }
 
@@ -35,31 +37,43 @@
 }
 
 .login-box input {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  padding: 14px;
+  border: 2px solid #3d3d3d;
+  border-radius: 8px;
   font-size: 16px;
-  transition: border-color 0.3s;
+  transition: all 0.3s;
+  background: #363636;
+  color: #ffffff;
+}
+
+.login-box input::placeholder {
+  color: #b0b0b0;
 }
 
 .login-box input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #0088cc;
+  box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+  background: #2d2d2d;
 }
 
 .login-box button {
-  padding: 12px;
-  background: #667eea;
+  padding: 14px;
+  background: #0088cc;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 136, 204, 0.3);
 }
 
 .login-box button:hover:not(:disabled) {
-  background: #5568d3;
+  background: #0077b3;
+  box-shadow: 0 4px 12px rgba(0, 136, 204, 0.4);
+  transform: translateY(-1px);
 }
 
 .login-box button:disabled {
@@ -68,31 +82,33 @@
 }
 
 .error-message {
-  background: #fee;
-  color: #c33;
-  padding: 10px;
-  border-radius: 5px;
+  background: rgba(211, 47, 47, 0.2);
+  color: #ff6b6b;
+  padding: 12px;
+  border-radius: 8px;
   margin-bottom: 15px;
   text-align: center;
+  border: 1px solid rgba(211, 47, 47, 0.3);
 }
 
 .toggle-form {
   text-align: center;
   margin-top: 20px;
-  color: #666;
+  color: #b0b0b0;
 }
 
 .toggle-form button {
   background: none;
   border: none;
-  color: #667eea;
+  color: #0088cc;
   cursor: pointer;
   text-decoration: underline;
   padding: 0;
   font-size: inherit;
+  transition: color 0.3s;
 }
 
 .toggle-form button:hover {
-  color: #5568d3;
+  color: #4fc3f7;
 }
 

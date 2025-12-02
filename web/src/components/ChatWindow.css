@@ -2,26 +2,30 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-primary);
 }
 
 .chat-header {
-  background: white;
+  background: var(--bg-secondary);
   padding: 15px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .chat-header h3 {
   margin: 0;
   font-size: 18px;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .chat-status {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .messages-container {
@@ -31,6 +35,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background: var(--bg-primary);
 }
 
 .no-messages {
@@ -38,7 +43,7 @@
   justify-content: center;
   align-items: center;
   height: 100%;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .message {
@@ -62,16 +67,19 @@
 }
 
 .message.own .message-content {
-  background: #667eea;
+  background: var(--message-own);
   color: white;
   border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 136, 204, 0.3);
+  border: 1px solid rgba(0, 136, 204, 0.2);
 }
 
 .message.other .message-content {
-  background: white;
-  color: #333;
+  background: var(--message-other);
+  color: var(--text-primary);
   border-bottom-left-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .message-sender {
@@ -100,30 +108,58 @@
 }
 
 .message-status {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1;
   font-weight: normal;
-  display: inline-flex;
-  align-items: center;
-  letter-spacing: -2px;
+  display: inline-block;
+  min-width: 18px;
+  height: 16px;
+  margin-left: 4px;
+  position: relative;
 }
 
 /* Одна серая галочка - отправлено */
 .message-status.status-sent {
-  color: rgba(255, 255, 255, 0.6);
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0.8;
+}
+
+.message-status.status-sent::after {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 /* Две серые галочки - доставлено */
 .message-status.status-delivered {
-  color: rgba(255, 255, 255, 0.6);
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0.8;
+}
+
+.message-status.status-delivered::after {
+  content: '✓✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  letter-spacing: -4px;
+  width: 20px;
 }
 
 /* Две синие галочки - прочитано */
 .message-status.status-read {
   color: #4fc3f7;
   opacity: 1;
+}
+
+.message-status.status-read::after {
+  content: '✓✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  letter-spacing: -4px;
+  width: 20px;
+  color: #4fc3f7;
 }
 
 .message.other .message-status {
@@ -137,43 +173,60 @@
 .message-input-form {
   display: flex;
   padding: 15px 20px;
-  background: white;
-  border-top: 1px solid #e0e0e0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
   gap: 10px;
+  box-shadow: 0 -2px 8px var(--shadow);
 }
 
 .message-input {
   flex: 1;
-  padding: 12px 15px;
-  border: 1px solid #ddd;
+  padding: 12px 18px;
+  border: 2px solid var(--border);
   border-radius: 25px;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.3s;
+  transition: all 0.3s;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.message-input::placeholder {
+  color: var(--text-secondary);
 }
 
 .message-input:focus {
-  border-color: #667eea;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+  background: var(--bg-primary);
 }
 
 .send-button {
-  padding: 12px 24px;
-  background: #667eea;
+  padding: 12px 28px;
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 25px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: background 0.3s;
+  font-weight: 600;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 136, 204, 0.3);
 }
 
 .send-button:hover:not(:disabled) {
-  background: #5568d3;
+  background: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(0, 136, 204, 0.4);
+  transform: translateY(-1px);
+}
+
+.send-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .send-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
