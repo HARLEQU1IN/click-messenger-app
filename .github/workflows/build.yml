@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-backend:
-    name: Build Backend
+  build:
+    name: Build Project
     runs-on: ubuntu-latest
     
     steps:
@@ -18,30 +18,11 @@ jobs:
       with:
         node-version: '20.x'
     
-    - name: Install dependencies
+    - name: Install backend dependencies
       working-directory: ./backend
       run: npm install
     
-    - name: Build check
-      working-directory: ./backend
-      run: |
-        echo "Backend build check passed"
-        node --version
-        npm --version
-
-  build-frontend:
-    name: Build Frontend
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js 20.x
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-    
-    - name: Install dependencies
+    - name: Install frontend dependencies
       working-directory: ./web
       run: npm install
     
@@ -49,8 +30,20 @@ jobs:
       working-directory: ./web
       run: npm run build
     
+    - name: Verify build
+      run: |
+        echo "Checking build output..."
+        if [ -d "web/build" ]; then
+          echo "✅ Build successful!"
+          ls -la web/build/ | head -10
+        else
+          echo "❌ Build directory not found"
+          exit 1
+        fi
+    
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
+      if: success()
       with:
         name: web-build
         path: web/build
