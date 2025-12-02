@@ -36,7 +36,9 @@ function Login({ onLogin }) {
       const res = await axios.post(`${API_URL}${endpoint}`, data);
       onLogin(res.data.user, res.data.token);
     } catch (err) {
-      setError(err.response?.data?.error || 'Произошла ошибка');
+      const errorMessage = err.response?.data?.error || err.message || 'Произошла ошибка';
+      setError(errorMessage);
+      console.error('Login/Register error:', err);
     } finally {
       setLoading(false);
     }

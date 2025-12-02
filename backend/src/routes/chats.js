@@ -1,8 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const Chat = require('../models/Chat');
-const Message = require('../models/Message');
-const User = require('../models/User');
+const { ChatStorage, MessageStorage, UserStorage } = require('../storage/fileStorage');
 const router = express.Router();
 
 // Middleware для проверки токена
@@ -21,16 +19,56 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+// Helper для заполнения данных
+async function populateChat(chat) {
+  const participants = await Promise.all(
+    (chat.participants || []).map(async (pId) => {
+      const user = await UserStorage.findById(pId.toString() || pId);
+      return user ? {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        online: user.online
+      } : null;
+    })
+  );
+
+  let lastMessage = null;
+  if (chat.lastMessage) {
+    lastMessage = await MessageStorage.findById(chat.lastMessage.toString() || chat.lastMessage);
+    if (lastMessage) {
+      const sender = await UserStorage.findById(lastMessage.sender.toString() || lastMessage.sender);
+      if (sender) {
+        lastMessage.sender = {
+          _id: sender._id,
+          username: sender.username,
+          avatar: sender.avatar
+        };
+      }
+    }
+  }
+
+  return {
+    ...chat,
+    participants: participants.filter(p => p !== null),
+    lastMessage
+  };
+}
+
 // Get all chats for user
 router.get('/', authenticate, async (req, res) => {
   try {
-    const chats = await Chat.find({ participants: req.userId })
-      .populate('participants', 'username email avatar online')
-      .populate('lastMessage')
-      .sort({ lastMessageAt: -1 });
-
-    res.json(chats);
+    const chats = await ChatStorage.find({ participants: [req.userId] });
+    const populatedChats = await Promise.all(chats.map(populateChat));
+    populatedChats.sort((a, b) => {
+      const dateA = new Date(a.lastMessageAt || a.createdAt);
+      const dateB = new Date(b.lastMessageAt || b.createdAt);
+      return dateB - dateA;
+    });
+    res.json(populatedChats);
   } catch (error) {
+    console.error('Error loading chats:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -45,26 +83,26 @@ router.post('/private', authenticate, async (req, res) => {
     }
 
     // Проверяем, существует ли уже чат
-    let chat = await Chat.findOne({
+    let chat = await ChatStorage.findOne({
       type: 'private',
-      participants: { $all: [req.userId, userId] }
-    })
-      .populate('participants', 'username email avatar online')
-      .populate('lastMessage');
+      participants: [req.userId, userId]
+    });
 
     if (!chat) {
       // Создаем новый чат
-      chat = new Chat({
+      chat = await ChatStorage.create({
         name: 'Private Chat',
         type: 'private',
-        participants: [req.userId, userId]
+        participants: [req.userId, userId],
+        lastMessage: null,
+        lastMessageAt: new Date().toISOString()
       });
-      await chat.save();
-      await chat.populate('participants', 'username email avatar online');
     }
 
-    res.json(chat);
+    const populatedChat = await populateChat(chat);
+    res.json(populatedChat);
   } catch (error) {
+    console.error('Error creating chat:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -73,19 +111,43 @@ router.post('/private', authenticate, async (req, res) => {
 router.get('/:chatId/messages', authenticate, async (req, res) => {
   try {
     const { chatId } = req.params;
-    const chat = await Chat.findById(chatId);
+    const chat = await ChatStorage.findById(chatId);
 
-    if (!chat || !chat.participants.includes(req.userId)) {
+    if (!chat) {
+      return res.status(404).json({ error: 'Чат не найден' });
+    }
+
+    const participants = chat.participants || [];
+    const isParticipant = participants.some(p => 
+      (p.toString() || p._id || p) === req.userId
+    );
+
+    if (!isParticipant) {
       return res.status(403).json({ error: 'Доступ запрещен' });
     }
 
-    const messages = await Message.find({ chat: chatId })
-      .populate('sender', 'username avatar')
-      .sort({ createdAt: 1 })
-      .limit(100);
+    const messages = await MessageStorage.find({ chat: chatId });
+    const populatedMessages = await Promise.all(
+      messages.map(async (msg) => {
+        const sender = await UserStorage.findById(msg.sender.toString() || msg.sender);
+        return {
+          ...msg,
+          sender: sender ? {
+            _id: sender._id,
+            username: sender.username,
+            avatar: sender.avatar
+          } : null
+        };
+      })
+    );
 
-    res.json(messages);
+    populatedMessages.sort((a, b) => {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
+    res.json(populatedMessages.slice(-100)); // Последние 100 сообщений
   } catch (error) {
+    console.error('Error loading messages:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -93,15 +155,23 @@ router.get('/:chatId/messages', authenticate, async (req, res) => {
 // Get all users (for creating chats)
 router.get('/users/all', authenticate, async (req, res) => {
   try {
-    const users = await User.find({ _id: { $ne: req.userId } })
-      .select('username email avatar online')
-      .limit(50);
+    const users = await UserStorage.findAll();
+    const filteredUsers = users
+      .filter(u => u._id !== req.userId)
+      .map(u => ({
+        _id: u._id,
+        username: u.username,
+        email: u.email,
+        avatar: u.avatar,
+        online: u.online
+      }))
+      .slice(0, 50);
 
-    res.json(users);
+    res.json(filteredUsers);
   } catch (error) {
+    console.error('Error loading users:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 module.exports = router;
-

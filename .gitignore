@@ -46,3 +46,6 @@ coverage/
 *.key
 .cache/
 
+# Data files (optional - можно раскомментировать, если не хотите коммитить данные)
+# backend/data/
+

@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { UserStorage } = require('../storage/fileStorage');
 const router = express.Router();
 
 // Register
@@ -12,14 +13,21 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Все поля обязательны' });
     }
 
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    const existingUser = await UserStorage.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       return res.status(400).json({ error: 'Пользователь уже существует' });
     }
 
-    const user = new User({ username, email, password });
-    await user.save();
+    const hashedPassword = await User.hashPassword(password);
+    const userData = await UserStorage.create({
+      username,
+      email,
+      password: hashedPassword,
+      avatar: '',
+      online: false
+    });
 
+    const user = new User(userData);
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
 
     res.status(201).json({
@@ -32,7 +40,8 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Register error:', error);
+    res.status(500).json({ error: error.message || 'Произошла ошибка при регистрации' });
   }
 });
 
@@ -45,18 +54,18 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email и пароль обязательны' });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
+    const userData = await UserStorage.findOne({ email });
+    if (!userData) {
       return res.status(401).json({ error: 'Неверный email или пароль' });
     }
 
+    const user = new User(userData);
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Неверный email или пароль' });
     }
 
-    user.online = true;
-    await user.save();
+    await UserStorage.update(user._id, { online: true });
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
 
@@ -70,7 +79,8 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ error: error.message || 'Произошла ошибка при входе' });
   }
 });
 
@@ -83,17 +93,17 @@ router.get('/me', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    const user = await User.findById(decoded.userId).select('-password');
+    const userData = await UserStorage.findById(decoded.userId);
     
-    if (!user) {
+    if (!userData) {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
-    res.json(user);
+    const user = new User(userData);
+    res.json(user.toJSON());
   } catch (error) {
     res.status(401).json({ error: 'Неверный токен' });
   }
 });
 
 module.exports = router;
-

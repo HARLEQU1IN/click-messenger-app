@@ -1,14 +1,12 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chats');
-const Message = require('./models/Message');
-const Chat = require('./models/Chat');
+const { MessageStorage, ChatStorage, UserStorage, ensureDataDir } = require('./storage/fileStorage');
 
 const app = express();
 const server = http.createServer(app);
@@ -57,28 +55,32 @@ io.on('connection', (socket) => {
     try {
       const { chatId, senderId, text } = data;
 
-      // Сохраняем сообщение в БД
-      const message = new Message({
+      // Сохраняем сообщение
+      const message = await MessageStorage.create({
         chat: chatId,
         sender: senderId,
         text: text
       });
-      await message.save();
 
       // Обновляем последнее сообщение в чате
-      await Chat.findByIdAndUpdate(chatId, {
+      await ChatStorage.update(chatId, {
         lastMessage: message._id,
-        lastMessageAt: new Date()
+        lastMessageAt: new Date().toISOString()
       });
 
-      // Заполняем данные отправителя
-      await message.populate('sender', 'username avatar');
+      // Получаем данные отправителя
+      const sender = await UserStorage.findById(senderId);
+      const senderData = sender ? {
+        _id: sender._id,
+        username: sender.username,
+        avatar: sender.avatar
+      } : null;
 
       // Отправляем сообщение всем в комнате
       io.to(chatId).emit('receive-message', {
         _id: message._id,
         chat: chatId,
-        sender: message.sender,
+        sender: senderData,
         text: message.text,
         createdAt: message.createdAt
       });
@@ -89,18 +91,16 @@ io.on('connection', (socket) => {
   });
 });
 
-// Database connection
-const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/messenger';
+// Инициализируем файловое хранилище
+ensureDataDir().then(() => {
+  console.log('✅ File storage initialized');
+});
 
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
-  });
+// Запускаем сервер
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 API available at http://localhost:${PORT}/api`);
+  console.log(`💾 Data stored in: backend/data/`);
+});
 
