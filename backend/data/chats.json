@@ -1,0 +1,15 @@
+[
+  {
+    "_id": "a1e3fc6aad8c8a541337f9ed1e90f7d5",
+    "name": "Private Chat",
+    "type": "private",
+    "participants": [
+      "dcbcc2d3c58944e111afaf3301ec19e5",
+      "51ad50e7f54e29da6fdb463acfb116f5"
+    ],
+    "lastMessage": "ec0868b3b75cf4a52b878cb652f4ff02",
+    "lastMessageAt": "2025-12-02T19:44:54.719Z",
+    "createdAt": "2025-12-02T19:31:27.956Z",
+    "updatedAt": "2025-12-02T19:44:54.719Z"
+  }
+]

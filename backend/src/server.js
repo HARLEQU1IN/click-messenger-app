@@ -40,8 +40,13 @@ io.on('connection', (socket) => {
 
   // Join room (chat)
   socket.on('join-room', (roomId) => {
-    socket.join(roomId);
-    console.log(`User ${socket.id} joined room ${roomId}`);
+    if (roomId) {
+      socket.join(String(roomId));
+      console.log(`User ${socket.id} joined room ${roomId}`);
+      console.log('Current rooms:', Array.from(socket.rooms));
+    } else {
+      console.error('Invalid roomId:', roomId);
+    }
   });
 
   // Leave room
@@ -51,9 +56,16 @@ io.on('connection', (socket) => {
   });
 
   // Send message
-  socket.on('send-message', async (data) => {
+  socket.on('send-message', async (data, callback) => {
     try {
+      console.log('Received send-message:', data);
       const { chatId, senderId, text } = data;
+
+      if (!chatId || !senderId || !text) {
+        console.error('Missing required fields:', { chatId, senderId, text });
+        if (callback) callback({ error: 'Отсутствуют обязательные поля' });
+        return;
+      }
 
       // Сохраняем сообщение
       const message = await MessageStorage.create({
@@ -61,6 +73,8 @@ io.on('connection', (socket) => {
         sender: senderId,
         text: text
       });
+
+      console.log('Message saved:', message._id);
 
       // Обновляем последнее сообщение в чате
       await ChatStorage.update(chatId, {
@@ -76,16 +90,27 @@ io.on('connection', (socket) => {
         avatar: sender.avatar
       } : null;
 
-      // Отправляем сообщение всем в комнате
-      io.to(chatId).emit('receive-message', {
+      const messageData = {
         _id: message._id,
         chat: chatId,
         sender: senderData,
         text: message.text,
         createdAt: message.createdAt
-      });
+      };
+
+      console.log('Emitting to room:', chatId);
+      console.log('Message data:', messageData);
+      console.log('Rooms:', Array.from(io.sockets.adapter.rooms.keys()));
+
+      // Отправляем сообщение всем в комнате (включая отправителя, если он в комнате)
+      io.to(chatId).emit('receive-message', messageData);
+      
+      console.log(`Message sent to room ${chatId}`);
+
+      if (callback) callback({ success: true });
     } catch (error) {
       console.error('Error sending message:', error);
+      if (callback) callback({ error: error.message || 'Ошибка отправки сообщения' });
       socket.emit('error', { message: 'Ошибка отправки сообщения' });
     }
   });

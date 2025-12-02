@@ -22,11 +22,13 @@ function ChatWindow({ chat, messages, currentUser, onSendMessage }) {
   };
 
   const getChatName = () => {
-    if (chat.type === 'private' && chat.participants) {
-      const otherUser = chat.participants.find(p => p._id !== currentUser.id);
-      return otherUser ? otherUser.username : 'Chat';
+    if (!chat) return 'Chat';
+    const currentUserId = currentUser._id || currentUser.id;
+    if (chat.type === 'private' && chat.participants && Array.isArray(chat.participants)) {
+      const otherUser = chat.participants.find(p => p && p._id && p._id !== currentUserId);
+      return otherUser && otherUser.username ? otherUser.username : 'Chat';
     }
-    return chat.name;
+    return chat.name || 'Chat';
   };
 
   const formatTime = (date) => {
@@ -40,33 +42,43 @@ function ChatWindow({ chat, messages, currentUser, onSendMessage }) {
     <div className="chat-window">
       <div className="chat-header">
         <h3>{getChatName()}</h3>
-        {chat.type === 'private' && chat.participants && (
+        {chat && chat.type === 'private' && chat.participants && Array.isArray(chat.participants) && (
           <span className="chat-status">
-            {chat.participants.find(p => p._id !== currentUser.id)?.online ? '🟢 Онлайн' : '⚫ Не в сети'}
+            {chat.participants.find(p => p && p._id && (p._id !== (currentUser._id || currentUser.id)))?.online ? '🟢 Онлайн' : '⚫ Не в сети'}
           </span>
         )}
       </div>
 
       <div className="messages-container">
-        {messages.length === 0 ? (
+        {!messages || messages.length === 0 ? (
           <div className="no-messages">
             <p>Начните общение! Напишите первое сообщение.</p>
           </div>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message._id}
-              className={`message ${message.sender._id === currentUser.id ? 'own' : 'other'}`}
-            >
-              <div className="message-content">
-                {message.sender._id !== currentUser.id && (
-                  <div className="message-sender">{message.sender.username}</div>
+          messages
+            .filter(message => message && message._id) // Фильтруем невалидные сообщения
+            .map((message) => {
+              const sender = message.sender || {};
+              const currentUserId = currentUser._id || currentUser.id;
+              const isOwn = sender._id === currentUserId;
+              
+              return (
+                <div
+                  key={message._id || `msg-${Date.now()}-${Math.random()}`}
+                  className={`message ${isOwn ? 'own' : 'other'}`}
+                >
+                  <div className="message-content">
+                {!isOwn && sender && sender.username && (
+                  <div className="message-sender">{sender.username}</div>
                 )}
-                <div className="message-text">{message.text}</div>
-                <div className="message-time">{formatTime(message.createdAt)}</div>
-              </div>
-            </div>
-          ))
+                    <div className="message-text">{message.text || ''}</div>
+                    <div className="message-time">
+                      {message.createdAt ? formatTime(message.createdAt) : ''}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
         )}
         <div ref={messagesEndRef} />
       </div>

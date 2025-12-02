@@ -21,46 +21,71 @@ const authenticate = async (req, res, next) => {
 
 // Helper для заполнения данных
 async function populateChat(chat) {
-  const participants = await Promise.all(
-    (chat.participants || []).map(async (pId) => {
-      const user = await UserStorage.findById(pId.toString() || pId);
-      return user ? {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar,
-        online: user.online
-      } : null;
-    })
-  );
+  try {
+    const participants = await Promise.all(
+      (chat.participants || []).map(async (pId) => {
+        if (!pId) return null;
+        const id = pId && typeof pId === 'object' ? (pId._id || pId.toString()) : String(pId);
+        const user = await UserStorage.findById(id);
+        return user ? {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+          online: user.online
+        } : null;
+      })
+    );
 
-  let lastMessage = null;
-  if (chat.lastMessage) {
-    lastMessage = await MessageStorage.findById(chat.lastMessage.toString() || chat.lastMessage);
-    if (lastMessage) {
-      const sender = await UserStorage.findById(lastMessage.sender.toString() || lastMessage.sender);
-      if (sender) {
-        lastMessage.sender = {
-          _id: sender._id,
-          username: sender.username,
-          avatar: sender.avatar
-        };
+    let lastMessage = null;
+    if (chat.lastMessage) {
+      const lastMessageId = chat.lastMessage && typeof chat.lastMessage === 'object' 
+        ? (chat.lastMessage._id || String(chat.lastMessage))
+        : String(chat.lastMessage);
+      lastMessage = await MessageStorage.findById(lastMessageId);
+      if (lastMessage && lastMessage.sender) {
+        const senderId = lastMessage.sender && typeof lastMessage.sender === 'object'
+          ? (lastMessage.sender._id || String(lastMessage.sender))
+          : String(lastMessage.sender);
+        const sender = await UserStorage.findById(senderId);
+        if (sender) {
+          lastMessage.sender = {
+            _id: sender._id,
+            username: sender.username,
+            avatar: sender.avatar
+          };
+        }
       }
     }
-  }
 
-  return {
-    ...chat,
-    participants: participants.filter(p => p !== null),
-    lastMessage
-  };
+    return {
+      ...chat,
+      participants: participants.filter(p => p !== null),
+      lastMessage
+    };
+  } catch (error) {
+    console.error('Error populating chat:', error, chat);
+    return {
+      ...chat,
+      participants: [],
+      lastMessage: null
+    };
+  }
 }
 
 // Get all chats for user
 router.get('/', authenticate, async (req, res) => {
   try {
-    const chats = await ChatStorage.find({ participants: [req.userId] });
-    const populatedChats = await Promise.all(chats.map(populateChat));
+    const allChats = await ChatStorage.findAll();
+    const userId = String(req.userId);
+    
+    // Фильтруем чаты, где пользователь является участником
+    const userChats = allChats.filter(c => {
+      const participants = Array.isArray(c.participants) ? c.participants : [];
+      return participants.some(p => String(p) === userId);
+    });
+    
+    const populatedChats = await Promise.all(userChats.map(populateChat));
     populatedChats.sort((a, b) => {
       const dateA = new Date(a.lastMessageAt || a.createdAt);
       const dateB = new Date(b.lastMessageAt || b.createdAt);
@@ -78,32 +103,55 @@ router.post('/private', authenticate, async (req, res) => {
   try {
     const { userId } = req.body;
 
+    console.log('Creating chat:', { currentUserId: req.userId, targetUserId: userId });
+
     if (!userId) {
       return res.status(400).json({ error: 'ID пользователя обязателен' });
     }
 
+    // Проверяем, что пользователь существует
+    const targetUser = await UserStorage.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
     // Проверяем, существует ли уже чат
-    let chat = await ChatStorage.findOne({
-      type: 'private',
-      participants: [req.userId, userId]
+    const allChats = await ChatStorage.findAll();
+    console.log('All chats:', allChats.length);
+    
+    let chat = allChats.find(c => {
+      if (c.type !== 'private') return false;
+      const participants = Array.isArray(c.participants) ? c.participants : [];
+      const participantIds = participants.map(p => String(p));
+      const queryIds = [String(req.userId), String(userId)];
+      
+      // Проверяем, что оба ID есть в участниках и их ровно 2
+      return participantIds.length === 2 &&
+             queryIds.every(id => participantIds.includes(id)) &&
+             participantIds.every(id => queryIds.includes(id));
     });
+
+    console.log('Found existing chat:', !!chat);
 
     if (!chat) {
       // Создаем новый чат
+      console.log('Creating new chat...');
       chat = await ChatStorage.create({
         name: 'Private Chat',
         type: 'private',
-        participants: [req.userId, userId],
+        participants: [String(req.userId), String(userId)],
         lastMessage: null,
         lastMessageAt: new Date().toISOString()
       });
+      console.log('Chat created:', chat._id);
     }
 
     const populatedChat = await populateChat(chat);
+    console.log('Returning populated chat:', populatedChat._id);
     res.json(populatedChat);
   } catch (error) {
     console.error('Error creating chat:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message || 'Ошибка при создании чата' });
   }
 });
 
@@ -118,9 +166,12 @@ router.get('/:chatId/messages', authenticate, async (req, res) => {
     }
 
     const participants = chat.participants || [];
-    const isParticipant = participants.some(p => 
-      (p.toString() || p._id || p) === req.userId
-    );
+    const userId = String(req.userId);
+    const isParticipant = participants.some(p => {
+      if (!p) return false;
+      const pId = typeof p === 'object' ? (p._id || String(p)) : String(p);
+      return pId === userId;
+    });
 
     if (!isParticipant) {
       return res.status(403).json({ error: 'Доступ запрещен' });
@@ -129,7 +180,13 @@ router.get('/:chatId/messages', authenticate, async (req, res) => {
     const messages = await MessageStorage.find({ chat: chatId });
     const populatedMessages = await Promise.all(
       messages.map(async (msg) => {
-        const sender = await UserStorage.findById(msg.sender.toString() || msg.sender);
+        if (!msg || !msg.sender) {
+          return { ...msg, sender: null };
+        }
+        const senderId = msg.sender && typeof msg.sender === 'object'
+          ? (msg.sender._id || String(msg.sender))
+          : String(msg.sender);
+        const sender = await UserStorage.findById(senderId);
         return {
           ...msg,
           sender: sender ? {

@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "dcbcc2d3c58944e111afaf3301ec19e5",
+    "username": "Марсель",
+    "email": "marselmuhamedzanoa@gmail.com",
+    "password": "$2a$10$tF4YucXgXkDokXWvNXumtuVHBuYdxGyEGDgVRI86SpXOFsUx3nZ7e",
+    "avatar": "",
+    "online": false,
+    "createdAt": "2025-12-02T19:30:13.961Z",
+    "updatedAt": "2025-12-02T19:30:13.961Z"
+  },
+  {
+    "_id": "51ad50e7f54e29da6fdb463acfb116f5",
+    "username": "Марсель2",
+    "email": "marselmuhamedzanov91@gmail.com",
+    "password": "$2a$10$ywa.7VCAUWGu9oWSddsUzuH2gSk2YLr41Ytsxv1XobUWVGtAF6w8G",
+    "avatar": "",
+    "online": false,
+    "createdAt": "2025-12-02T19:31:21.808Z",
+    "updatedAt": "2025-12-02T19:31:21.808Z"
+  }
+]

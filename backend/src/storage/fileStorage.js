@@ -108,11 +108,11 @@ const ChatStorage = {
   async find(query) {
     const chats = await this.findAll();
     if (query.participants) {
+      const queryIds = query.participants.map(p => String(p));
       return chats.filter(c => {
         const participants = Array.isArray(c.participants) ? c.participants : [];
-        return query.participants.some(p => 
-          participants.some(cp => cp.toString() === p.toString() || cp._id === p)
-        );
+        const participantIds = participants.map(p => String(p));
+        return queryIds.some(id => participantIds.includes(id));
       });
     }
     return chats;
@@ -124,13 +124,18 @@ const ChatStorage = {
       return chats.find(c => {
         if (c.type !== query.type) return false;
         const participants = Array.isArray(c.participants) ? c.participants : [];
-        const participantIds = participants.map(p => p.toString() || p._id || p);
-        const queryIds = query.participants.map(p => p.toString());
-        return queryIds.every(id => participantIds.includes(id)) && 
-               participantIds.length === queryIds.length;
+        const participantIds = participants.map(p => String(p));
+        const queryIds = query.participants.map(p => String(p));
+        // Проверяем, что все ID из query есть в participants и их количество совпадает
+        return participantIds.length === queryIds.length &&
+               queryIds.every(id => participantIds.includes(id)) &&
+               participantIds.every(id => queryIds.includes(id));
       });
     }
-    return chats.find(c => c._id === query._id);
+    if (query._id) {
+      return chats.find(c => String(c._id) === String(query._id));
+    }
+    return undefined;
   },
 
   async create(chatData) {
@@ -175,9 +180,12 @@ const MessageStorage = {
   async find(query) {
     const messages = await this.findAll();
     if (query.chat) {
+      const queryId = String(query.chat);
       return messages.filter(m => {
-        const chatId = m.chat?.toString() || m.chat?._id || m.chat;
-        const queryId = query.chat.toString();
+        if (!m || !m.chat) return false;
+        const chatId = m.chat && typeof m.chat === 'object'
+          ? (m.chat._id || String(m.chat))
+          : String(m.chat);
         return chatId === queryId;
       });
     }
