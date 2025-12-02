@@ -4,11 +4,9 @@
   "description": "Современный мессенджер по типу Telegram",
   "main": "index.js",
   "scripts": {
-    "install:all": "npm install && cd backend && npm install && cd ../web && npm install && cd ../desktop && npm install && cd ../mobile && npm install",
+    "install:all": "npm install && cd backend && npm install && cd ../web && npm install",
     "dev:backend": "cd backend && npm run dev",
-    "dev:web": "cd web && npm start",
-    "dev:desktop": "cd desktop && npm run electron",
-    "dev:mobile": "cd mobile && npm start"
+    "dev:web": "cd web && npm start"
   },
   "keywords": [
     "messenger",
@@ -20,9 +18,7 @@
   "license": "MIT",
   "workspaces": [
     "backend",
-    "web",
-    "desktop",
-    "mobile"
+    "web"
   ]
 }
 
